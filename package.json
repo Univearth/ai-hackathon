@@ -6,8 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "check": "biome check --write .",
-    "check:ci": "biome ci .",
+    "check": "pnpm dlx biome check --write .",
+    "check:ci": "pnpm dlx biome ci .",
     "test": "vitest"
   },
   "dependencies": {

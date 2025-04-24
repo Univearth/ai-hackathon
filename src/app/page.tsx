@@ -107,9 +107,8 @@ export default function Chat() {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`p-4 rounded-lg ${
-              message.role === "user" ? "bg-blue-100 ml-auto" : "bg-gray-100"
-            }`}
+            className={`p-4 rounded-lg ${message.role === "user" ? "bg-blue-100 ml-auto" : "bg-gray-100"
+              }`}
           >
             <div className="font-semibold mb-1">
               {message.role === "user" ? "You" : "AI"}
