@@ -1,5 +1,7 @@
 # aihack
 
+開発時のルールは [docs/rules.md](docs/rules.md)を、参考資料は[ref.md](docs/ref.md)を参照すること  
+
 ## 技術スタック
 
 - Next.js
@@ -11,6 +13,8 @@
 pnpm i
 pnpm dev
 ```
+
+<localhost:3000>  
 
 ## Lint/Format
 

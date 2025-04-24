@@ -45,5 +45,8 @@ jobs:
         with:
           aqua_version: v2.45.1
 
+      - name: Install Vitest
+        run: pnpm add vitest
+
       - name: Run Test
         run: pnpm test run
