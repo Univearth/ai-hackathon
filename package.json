@@ -8,7 +8,7 @@
     "start": "next start",
     "check": "pnpm dlx biome check --write .",
     "check:ci": "pnpm dlx biome ci .",
-    "test": "vitest"
+    "test": "pnpm dlx vitest"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.18",
