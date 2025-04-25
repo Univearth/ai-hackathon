@@ -15,7 +15,7 @@ pnpm i
 pnpm dev
 ```
 
-<localhost:3000>  
+<http://localhost:3000>  
 
 ## Lint/Format
 
