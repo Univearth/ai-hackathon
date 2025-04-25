@@ -1,6 +1,6 @@
 # ai-hackathon
 
-開発時のルールは [docs/rules.md](docs/rules.md)を、参考資料は[ref.md](docs/ref.md)を参照すること  
+開発時のルールは [docs/rules.md](docs/rules.md) を、参考資料は [docs/ref.md](docs/ref.md) を参照すること  
 
 ## 技術スタック
 
