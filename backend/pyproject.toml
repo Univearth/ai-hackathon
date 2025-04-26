@@ -9,6 +9,7 @@ dependencies = [
     "google-genai>=1.12.1",
     "minio>=7.2.15",
     "ollama>=0.4.8",
+    "openai>=1.76.0",
     "python-dotenv>=1.1.0",
     "python-multipart>=0.0.20",
     "uvicorn[standard]>=0.34.2",
