@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import base64
 from typing import Optional
+import tempfile
 
 # 環境変数の読み込み
 load_dotenv()
@@ -65,70 +66,71 @@ def upload_to_r2(file_path: str) -> str:
 
 @app.post("/analyze")
 async def analyze_image(request: ImageRequest):
-    try:
-        # Base64をデコード
-        image_data = base64.b64decode(request.image_base64.encode('utf-8'))
+    # 一時ファイルを作成
+    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
+        try:
+            # Base64をデコード
+            image_data = base64.b64decode(request.image_base64.encode('utf-8'))
 
-        # 一時ファイルとして保存
-        temp_file_path = f"temp_{uuid.uuid4()}.jpg"
-        with open(temp_file_path, "wb") as buffer:
-            buffer.write(image_data)
+            # 一時ファイルに書き込み
+            temp_file.write(image_data)
+            temp_file_path = temp_file.name
 
-        # R2にアップロードしてURLを取得
-        image_url = upload_to_r2(temp_file_path)
+            # R2にアップロードしてURLを取得
+            image_url = upload_to_r2(temp_file_path)
 
-        response = client.models.generate_content(
-            model='gemini-2.5-pro-exp-03-25',
-            contents=[
-                types.Part.from_bytes(
-                    data=image_data,
-                    mime_type=request.content_type,
-                ),
-                'この写真から以下の情報をJSON形式で出力してください：\n'
-                '1. 商品名 (日本語で)\n'
-                '2. 賞味期限または消費期限（ISO 8601形式で）\n'
-                '   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n'
-                '   - 年が2桁で表記されている場合は、2000年代として解釈してください\n'
-                '   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n'
-                '   - 時間が記載されていない場合は、00:00:00として出力してください\n'
-                '3. 画像URL（空文字列で構いません）\n'
-                '4. 分量（例：300g、1kg、500mlなど）\n'
-                '5. 分類（以下のいずれかから選択）：\n'
-                '   - 肉\n'
-                '   - 野菜\n'
-                '   - 魚\n'
-                '   - 調味料\n'
-                '   - お菓子\n'
-                '   - 飲料\n'
-                '   - その他\n'
-                'JSONのキーは以下の通りです：\n'
-                '- name\n'
-                '- expiration_date\n'
-                '- image_url\n'
-                '- amount\n'
-                '- category'
-            ],
-            config={
-                "response_mime_type": "application/json",
-                "response_schema": ProductInfo
-            }
-        )
+            response = client.models.generate_content(
+                model='gemini-2.5-pro-exp-03-25',
+                contents=[
+                    types.Part.from_bytes(
+                        data=image_data,
+                        mime_type=request.content_type,
+                    ),
+                    'この写真から以下の情報をJSON形式で出力してください：\n'
+                    '1. 商品名 (日本語で)\n'
+                    '2. 賞味期限または消費期限（ISO 8601形式で）\n'
+                    '   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n'
+                    '   - 年が2桁で表記されている場合は、2000年代として解釈してください\n'
+                    '   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n'
+                    '   - 時間が記載されていない場合は、00:00:00として出力してください\n'
+                    '3. 画像URL（空文字列で構いません）\n'
+                    '4. 分量（例：300g、1kg、500mlなど）\n'
+                    '5. 分類（以下のいずれかから選択）：\n'
+                    '   - 肉\n'
+                    '   - 野菜\n'
+                    '   - 魚\n'
+                    '   - 調味料\n'
+                    '   - お菓子\n'
+                    '   - 飲料\n'
+                    '   - その他\n'
+                    'JSONのキーは以下の通りです：\n'
+                    '- name\n'
+                    '- expiration_date\n'
+                    '- image_url\n'
+                    '- amount\n'
+                    '- category'
+                ],
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": ProductInfo
+                }
+            )
 
-        # レスポンスをJSONとしてパース
-        result = json.loads(response.text)
-        # 画像URLを設定
-        result["image_url"] = image_url
+            # レスポンスをJSONとしてパース
+            result = json.loads(response.text)
+            # 画像URLを設定
+            result["image_url"] = image_url
 
-        return result
+            return result
 
-    except Exception as e:
-        print(f"エラーが発生しました: {str(e)}")
-        raise
+        except Exception as e:
+            print(f"エラーが発生しました: {str(e)}")
+            raise
 
-    finally:
-        # 一時ファイルを削除
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+        finally:
+            # 一時ファイルを削除
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
 
 @app.get("/health")
 async def health():
