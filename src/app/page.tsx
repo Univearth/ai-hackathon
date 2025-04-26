@@ -366,8 +366,8 @@ const Expiration = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-2">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div className="flex flex-wrap gap-2">
           {!isSelectionMode ? (
             <>
               <Button asChild variant="default" size="sm">
@@ -409,7 +409,7 @@ const Expiration = () => {
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {!isSelectionMode ? (
             <>
               <Button
