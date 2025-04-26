@@ -4,4 +4,5 @@ export type ResponseTypes = {
   image_url: string;
   amount: number;
   unit: string;
+  content?: string;
 };
