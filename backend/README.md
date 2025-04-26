@@ -157,6 +157,97 @@ curl -X POST https://backend.yashikota.com/suggest-menu \
 }
 ```
 
+## JSONファイル操作API
+
+### JSONファイルのアップロード
+
+JSONデータをR2にアップロードします。
+
+**エンドポイント**: `POST /upload-json`
+
+**リクエストボディ**:
+```json
+{
+  "id": "ファイルのID",
+  "data": {
+    // 任意のJSONデータ
+  }
+}
+```
+
+**レスポンス**:
+```json
+{
+  "url": "アップロードされたファイルのURL"
+}
+```
+
+**エラー**:
+- 400: 不正なリクエスト
+- 500: サーバーエラー
+
+### JSONファイルの取得
+
+指定したIDのJSONファイルを取得します。
+
+**エンドポイント**: `GET /get-json/{id}`
+
+**パラメータ**:
+- `id`: 取得したいファイルのID
+
+**レスポンス**:
+```json
+{
+  // アップロードされたJSONデータ
+}
+```
+
+**エラー**:
+- 404: ファイルが見つからない
+- 500: サーバーエラー
+
+## テスト
+
+### テストスクリプトの実行
+
+JSONファイル操作APIのテストを行うには、以下のコマンドを実行します：
+
+```bash
+python test_upload.py
+```
+
+このスクリプトは以下のテストを実行します：
+1. JSONデータのアップロード
+2. アップロードしたデータの取得
+
+テストデータは以下の形式でアップロードされます：
+```json
+{
+  "name": "テストデータ",
+  "value": 123,
+  "items": ["item1", "item2", "item3"]
+}
+```
+
+### 手動テスト
+
+curlを使用して手動でテストすることもできます：
+
+```bash
+# アップロード
+curl -X POST http://localhost:8000/upload-json \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "test-id",
+    "data": {
+      "key": "value"
+    }
+  }'
+
+# 取得
+curl http://localhost:8000/get-json/test-id
+```
+
 ## 環境変数
 
 以下の環境変数が必要です：
