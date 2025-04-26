@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-import ollama
 from minio import Minio
 import os
 import uuid
@@ -10,7 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import tempfile
 import base64
-import requests
 from openai import OpenAI
 
 # 環境変数の読み込み
@@ -102,6 +100,9 @@ async def analyze_image(file: UploadFile = File(...)):
                                     "   - 年が2桁で表記されている場合は、2000年代として解釈してください\n"
                                     "   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n"
                                     "   - 時間が記載されていない場合は、00:00:00として出力してください\n"
+                                    "   - 賞味期限と消費期限を区別して認識してください\n"
+                                    "   - 賞味期限の場合は「best_before」、消費期限の場合は「use_by」として出力してください\n"
+                                    "   - 区別ができない場合は「best_before」として出力してください\n"
                                     "3. 画像URL（空文字列で構いません）\n"
                                     "4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n"
                                     "5. 単位（以下のいずれかから選択）：\n"
@@ -123,6 +124,7 @@ async def analyze_image(file: UploadFile = File(...)):
                                     "JSONのキーは以下の通りです：\n"
                                     "- name\n"
                                     "- expiration_date\n"
+                                    "- expiration_type\n"
                                     "- image_url\n"
                                     "- amount\n"
                                     "- unit\n"
@@ -144,12 +146,13 @@ async def analyze_image(file: UploadFile = File(...)):
                             "properties": {
                                 "name": {"type": "string"},
                                 "expiration_date": {"type": "string"},
+                                "expiration_type": {"type": "string", "enum": ["best_before", "use_by"]},
                                 "image_url": {"type": "string"},
                                 "amount": {"type": "number"},
                                 "unit": {"type": "string"},
                                 "category": {"type": "string"}
                             },
-                            "required": ["name", "expiration_date", "image_url", "amount", "unit", "category"]
+                            "required": ["name", "expiration_date", "expiration_type", "image_url", "amount", "unit", "category"]
                         }
                     }
                 )
