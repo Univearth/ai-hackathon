@@ -11,4 +11,4 @@ fi
 # アプリケーションを起動
 echo "アプリケーションを起動します..."
 cd backend
-uv run main.py
+nohup uv run main.py &
