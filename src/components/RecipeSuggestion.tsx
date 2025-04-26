@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useStorage } from "@/hooks/useStorage";
+import useSelectedItems from "@/hooks/useSelectedItems";
 
 type Menu = {
   menu: string;
@@ -29,6 +30,7 @@ type Recipe = {
 
 const RecipeSuggestion = () => {
   const { responses: foodItems } = useStorage();
+  const { selectedItems } = useSelectedItems();
   const [menu, setMenu] = useState<Menu | null>(null);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,13 +41,13 @@ const RecipeSuggestion = () => {
       setMenu(null);
       setRecipe(null);
 
-      const response = await fetch("/api/suggest-menu", {
+      const response = await fetch("/api/menu", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          products: foodItems,
+          products: selectedItems.length > 0 ? selectedItems : foodItems,
         }),
       });
 

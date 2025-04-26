@@ -141,6 +141,12 @@ const Expiration = () => {
               グラフを見る
             </Link>
           </Button>
+          <Button asChild variant="default" size="sm">
+            <Link href="/select-foods">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              献立を提案
+            </Link>
+          </Button>
         </div>
         {/* JSONエクスポートボタン */}
         <div className="flex gap-2">
