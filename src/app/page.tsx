@@ -9,7 +9,16 @@ import useStorage from "@/hooks/useStorage";
 import { Modal } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { BarChart2, CalendarIcon, CameraIcon, Check, PencilIcon, PlusCircle, Trash2 } from "lucide-react";
+import {
+  BarChart2,
+  CalendarIcon,
+  CameraIcon,
+  Check,
+  ClockIcon,
+  PencilIcon,
+  PlusCircle,
+  Trash2,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,24 +35,41 @@ type MenuItem = {
   price: number;
   category?: string;
   imageUrl?: string;
-}
+};
+
+// レシピデータの型定義
+type RecipeData = {
+  title: string;
+  ingredients: string[];
+  indication: string;
+};
 
 const Expiration = () => {
   const router = useRouter();
-  const { responses: foodItems, addFoodItem, deleteItem, deleteItemById } = useStorage();
+  const {
+    responses: foodItems,
+    addFoodItem,
+    deleteItem,
+    deleteItemById,
+  } = useStorage();
   const [filters, setFilters] = useState<{
     amount?: number;
     amountType?: "greater" | "less";
     unit?: string;
     category?: string;
   }>({});
-  const [sortType, setSortType] = useState<'exp_asc' | 'exp_desc' | 'added'>('exp_asc');
-  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
+  const [sortType, setSortType] = useState<"exp_asc" | "exp_desc" | "added">(
+    "exp_asc"
+  );
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>(
+    {}
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isMenuLoading, setIsMenuLoading] = useState(false);
   const [menuError, setMenuError] = useState<string | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeData | null>(null);
 
   // // メニューデータを取得する
   // useEffect(() => {
@@ -93,8 +119,10 @@ const Expiration = () => {
   // フィルタリングされた商品リスト
   const filteredItems = foodItems.filter((item) => {
     if (filters.amount !== undefined) {
-      if (filters.amountType === "greater" && item.amount < filters.amount) return false;
-      if (filters.amountType === "less" && item.amount > filters.amount) return false;
+      if (filters.amountType === "greater" && item.amount < filters.amount)
+        return false;
+      if (filters.amountType === "less" && item.amount > filters.amount)
+        return false;
     }
     if (filters.unit && item.unit !== filters.unit) return false;
     if (filters.category && item.category !== filters.category) return false;
@@ -124,10 +152,18 @@ const Expiration = () => {
 
   // 並び替えロジック
   const sortedItems = (() => {
-    if (sortType === 'exp_asc') {
-      return [...filteredItems].sort((a, b) => getDaysRemaining(a.expiration_date) - getDaysRemaining(b.expiration_date));
-    } else if (sortType === 'exp_desc') {
-      return [...filteredItems].sort((a, b) => getDaysRemaining(b.expiration_date) - getDaysRemaining(a.expiration_date));
+    if (sortType === "exp_asc") {
+      return [...filteredItems].sort(
+        (a, b) =>
+          getDaysRemaining(a.expiration_date) -
+          getDaysRemaining(b.expiration_date)
+      );
+    } else if (sortType === "exp_desc") {
+      return [...filteredItems].sort(
+        (a, b) =>
+          getDaysRemaining(b.expiration_date) -
+          getDaysRemaining(a.expiration_date)
+      );
     } else {
       return filteredItems; // 追加順はそのまま
     }
@@ -136,11 +172,11 @@ const Expiration = () => {
   // JSONエクスポート処理
   const handleExportJson = () => {
     const json = JSON.stringify(foodItems, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'foods.json';
+    a.download = "foods.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -153,21 +189,31 @@ const Expiration = () => {
     reader.onload = () => {
       try {
         const imported = JSON.parse(reader.result as string);
-        if (!Array.isArray(imported)) throw new Error('不正なJSON形式です');
+        if (!Array.isArray(imported)) throw new Error("不正なJSON形式です");
         imported.forEach((item) => {
           // 必須フィールドの簡易チェック
-          if (item.name && item.expiration_date && item.image_url && typeof item.amount === 'number' && item.unit && item.category) {
+          if (
+            item.name &&
+            item.expiration_date &&
+            item.image_url &&
+            typeof item.amount === "number" &&
+            item.unit &&
+            item.category
+          ) {
             addFoodItem(item);
           }
         });
-        alert('インポートが完了しました');
+        alert("インポートが完了しました");
       } catch (err) {
-        alert('インポートに失敗しました: ' + (err instanceof Error ? err.message : '不明なエラー'));
+        alert(
+          "インポートに失敗しました: " +
+            (err instanceof Error ? err.message : "不明なエラー")
+        );
       }
     };
     reader.readAsText(file);
     // inputの値をリセットして同じファイルを連続で選択できるように
-    e.target.value = '';
+    e.target.value = "";
   };
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -181,9 +227,9 @@ const Expiration = () => {
 
   // アイテムの選択・選択解除
   const toggleItemSelection = (itemId: string) => {
-    setSelectedItems(prev => ({
+    setSelectedItems((prev) => ({
       ...prev,
-      [itemId]: !prev[itemId]
+      [itemId]: !prev[itemId],
     }));
   };
 
@@ -193,7 +239,7 @@ const Expiration = () => {
       setSelectedItems({});
     } else {
       const newSelectedItems: Record<string, boolean> = {};
-      sortedItems.forEach(item => {
+      sortedItems.forEach((item) => {
         newSelectedItems[item.image_url] = true;
       });
       setSelectedItems(newSelectedItems);
@@ -202,13 +248,15 @@ const Expiration = () => {
 
   // 選択されたアイテムの処理
   const handleSubmit = async () => {
-    const selectedData = sortedItems.filter(item => selectedItems[item.image_url]);
+    const selectedData = sortedItems.filter(
+      (item) => selectedItems[item.image_url]
+    );
 
     if (selectedData.length === 0) {
       toast({
         title: "選択エラー",
         description: "アイテムが選択されていません",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -216,32 +264,58 @@ const Expiration = () => {
     // 選択したデータを処理する
     console.log("選択されたアイテム:", selectedData);
 
-    const menuResponse = await fetch('/api/menu', {
-      method: 'POST',
-      body: JSON.stringify(selectedData),
-    });
+    try {
+      const menuResponse = await fetch("/api/menu", {
+        method: "POST",
+        body: JSON.stringify(selectedData),
+      });
 
-    const menuData = await menuResponse.json();
-    console.log("メニューデータ:", menuData);
+      if (!menuResponse.ok) {
+        throw new Error(`APIエラー: ${menuResponse.status}`);
+      }
 
+      const recipeData = await menuResponse.json();
+      console.log("レシピデータ:", recipeData);
 
-    // 例: ここで選択したデータをどこかに渡す処理を追加
-    // router.push({
-    //   pathname: '/selected-items',
-    //   query: { data: JSON.stringify(selectedData) }
-    // });
+      // 取得したレシピデータをステートにセット
+      setSelectedRecipe(recipeData);
+
+      // モーダルを開く
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("レシピの取得に失敗しました:", error);
+      toast({
+        title: "エラー",
+        description: "レシピデータの取得に失敗しました",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // モーダルのキャンセル処理
+  const handleCancel = () => {
+    setIsModalOpen(false);
+  };
+
+  // モーダルのOK処理
+  const handleOk = () => {
+    setIsModalOpen(false);
+    // 選択をリセット
+    setSelectedItems({});
+    setIsSelectionMode(false);
 
     toast({
-      title: "選択完了",
-      description: `${selectedData.length}個のアイテムが選択されました`,
+      title: "レシピ確認完了",
+      description: "選択したアイテムからレシピを生成しました",
     });
   };
 
-
   const handleDelete = async () => {
-    const selectedData = sortedItems.filter(item => selectedItems[item.image_url]);
+    const selectedData = sortedItems.filter(
+      (item) => selectedItems[item.image_url]
+    );
     console.log("選択されたアイテム:", selectedData);
-    selectedData.forEach(item => {
+    selectedData.forEach((item) => {
       deleteItemById(item.image_url);
     });
 
@@ -284,9 +358,16 @@ const Expiration = () => {
           ) : (
             <>
               <Button variant="default" size="sm" onClick={toggleSelectAll}>
-                {Object.keys(selectedItems).length === sortedItems.length ? '全選択解除' : '全選択'}
+                {Object.keys(selectedItems).length === sortedItems.length
+                  ? "全選択解除"
+                  : "全選択"}
               </Button>
-              <Button variant="destructive" size="sm" disabled={selectedCount === 0} onClick={handleDelete}>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedCount === 0}
+                onClick={handleDelete}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 選択削除
               </Button>
@@ -297,13 +378,28 @@ const Expiration = () => {
         <div className="flex gap-2">
           {!isSelectionMode ? (
             <>
-              <Button type="button" variant="outline" size="sm" onClick={handleExportJson}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleExportJson}
+              >
                 JSONエクスポート
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 JSONインポート
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={toggleSelectionMode}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectionMode}
+              >
                 複数選択
               </Button>
               <input
@@ -340,23 +436,23 @@ const Expiration = () => {
       {/* 並び替えボタン */}
       <div className="flex gap-2 mb-6">
         <Button
-          variant={sortType === 'exp_asc' ? 'default' : 'outline'}
+          variant={sortType === "exp_asc" ? "default" : "outline"}
           size="sm"
-          onClick={() => setSortType('exp_asc')}
+          onClick={() => setSortType("exp_asc")}
         >
           期限が近い順
         </Button>
         <Button
-          variant={sortType === 'exp_desc' ? 'default' : 'outline'}
+          variant={sortType === "exp_desc" ? "default" : "outline"}
           size="sm"
-          onClick={() => setSortType('exp_desc')}
+          onClick={() => setSortType("exp_desc")}
         >
           期限が遠い順
         </Button>
         <Button
-          variant={sortType === 'added' ? 'default' : 'outline'}
+          variant={sortType === "added" ? "default" : "outline"}
           size="sm"
-          onClick={() => setSortType('added')}
+          onClick={() => setSortType("added")}
         >
           追加順
         </Button>
@@ -370,26 +466,35 @@ const Expiration = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedItems.map((item) => {
             const daysRemaining = getDaysRemaining(item.expiration_date);
-            const percent = maxDays > 0 ? Math.max((daysRemaining / maxDays) * 100, 5) : 5;
+            const percent =
+              maxDays > 0 ? Math.max((daysRemaining / maxDays) * 100, 5) : 5;
             const gradient = getGradient(daysRemaining);
 
             return (
               <Card
                 key={item.image_url}
-                className={`overflow-hidden relative ${isSelectionMode && selectedItems[item.image_url] ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                className={`overflow-hidden relative ${
+                  isSelectionMode && selectedItems[item.image_url]
+                    ? "ring-2 ring-primary ring-offset-2"
+                    : ""
+                }`}
               >
                 {isSelectionMode && (
                   <div className="absolute top-2 left-2 z-10">
                     <Checkbox
                       checked={!!selectedItems[item.image_url]}
-                      onCheckedChange={() => toggleItemSelection(item.image_url)}
+                      onCheckedChange={() =>
+                        toggleItemSelection(item.image_url)
+                      }
                       className="h-5 w-5 bg-white border-gray-300"
                     />
                   </div>
                 )}
                 <div
                   className="relative aspect-video bg-muted"
-                  onClick={() => isSelectionMode && toggleItemSelection(item.image_url)}
+                  onClick={() =>
+                    isSelectionMode && toggleItemSelection(item.image_url)
+                  }
                 >
                   {item.image_url ? (
                     <Image
@@ -405,7 +510,9 @@ const Expiration = () => {
                   )}
                   {!isSelectionMode && (
                     <Link
-                      href={`/edit_and_create?data=${encodeURIComponent(JSON.stringify(item))}`}
+                      href={`/edit_and_create?data=${encodeURIComponent(
+                        JSON.stringify(item)
+                      )}`}
                       className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100"
                     >
                       <PencilIcon className="h-4 w-4 text-gray-600" />
@@ -418,9 +525,16 @@ const Expiration = () => {
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm mb-2">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span>{getExpirationLabel(item.expiration_type)}: <span className={`${daysRemaining <= 7 ? 'text-red-500' : ''}`}>
-                      {formatDate(item.expiration_date)}
-                    </span></span>
+                    <span>
+                      {getExpirationLabel(item.expiration_type)}:{" "}
+                      <span
+                        className={`${
+                          daysRemaining <= 7 ? "text-red-500" : ""
+                        }`}
+                      >
+                        {formatDate(item.expiration_date)}
+                      </span>
+                    </span>
                   </div>
                   {/* グラデーションバー追加 */}
                   <div className="w-full h-3 bg-muted rounded my-2">
@@ -431,41 +545,71 @@ const Expiration = () => {
                   </div>
 
                   <div className="flex items-center gap-2 text-sm mb-2">
-                    <span>分量: {item.amount}{item.unit}</span>
+                    <span>
+                      分量: {item.amount}
+                      {item.unit}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm mb-2">
                     <span>分類: {item.category}</span>
                   </div>
 
-                  <div className={`
+                  <div
+                    className={`
                     mt-2 py-1 px-3 rounded-full text-sm font-medium inline-block
-                    ${daysRemaining <= 0 ? 'bg-destructive/15 text-destructive' :
-                      daysRemaining <= 7 ? 'bg-orange-100 text-orange-800' :
-                        'bg-green-100 text-green-800'}
-                  `}>
-                    {daysRemaining <= 0
-                      ? '期限切れ'
-                      : `あと${daysRemaining}日`}
+                    ${
+                      daysRemaining <= 0
+                        ? "bg-destructive/15 text-destructive"
+                        : daysRemaining <= 7
+                        ? "bg-orange-100 text-orange-800"
+                        : "bg-green-100 text-green-800"
+                    }
+                  `}
+                  >
+                    {daysRemaining <= 0 ? "期限切れ" : `あと${daysRemaining}日`}
                   </div>
-
                 </CardContent>
               </Card>
             );
           })}
         </div>
       )}
-<Modal
+      <Modal
+        title="おすすめレシピ"
+        open={isModalOpen}
+        onCancel={handleCancel}
+        onOk={handleOk}
+      >
+        {selectedRecipe ? (
+          <div className="py-4">
+            <h2 className="text-xl font-semibold mb-4">
+              {selectedRecipe.title}
+            </h2>
 
-open={isModalOpen}
-onCancel={handleCancel}
-onOk={}
->
-  <p>Some contents...</p>
-  <p>Some contents...</p>
-  <p>Some contents...</p>
-</Modal>
+            <div className="mb-4">
+              <h3 className="text-md font-medium mb-2">材料</h3>
+              <ul className="list-disc pl-5 space-y-1">
+                {selectedRecipe.ingredients &&
+                  selectedRecipe.ingredients.map((ingredient, index) => (
+                    <li key={index} className="text-gray-700">
+                      {ingredient}
+                    </li>
+                  ))}
+              </ul>
+            </div>
 
+            <div className="flex items-center text-sm text-gray-500">
+              <ClockIcon className="h-4 w-4 mr-1" />
+              <span>調理時間: {selectedRecipe.indication}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="py-4 text-center">
+            <p>データを読み込み中...</p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
