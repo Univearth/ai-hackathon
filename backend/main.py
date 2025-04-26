@@ -233,39 +233,59 @@ async def suggest_menu(request: MenuRequest):
         # 期限が近い3つの商品を選択
         ingredients = sorted_products[:3]
 
-        # OpenAI APIにリクエストを送信
-        response = client.chat.completions.create(
-            model="gemma3:27b",
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"以下の食材を使って、簡単に作れる料理を提案してください：\n"
-                    f"{', '.join([f'{p.name} ({p.amount}{p.unit})' for p in ingredients])}\n\n"
-                    f"以下の形式でJSONで出力してください：\n"
-                    f"- title: 料理名\n"
-                    f"- ingredients: 必要な材料のリスト\n"
-                    f"- indication: 調理時間（例：約10分）"
-                }
-            ],
-            response_format={
-                "type": "json_object",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string"},
-                        "ingredients": {
-                            "type": "array",
-                            "items": {"type": "string"}
-                        },
-                        "indication": {"type": "string"}
-                    },
-                    "required": ["title", "ingredients", "indication"]
-                }
-            }
-        )
+        # OpenAI APIにリクエストを送信（最大3回までリトライ）
+        max_retries = 5
+        retry_count = 0
+        last_error = None
 
-        result = json.loads(response.choices[0].message.content)
-        return result
+        while retry_count < max_retries:
+            try:
+                response = client.chat.completions.create(
+                    model="gemma3:27b",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": f"以下の食材を使って、簡単に作れる料理を提案してください：\n"
+                            f"{', '.join([f'{p.name} ({p.amount}{p.unit})' for p in ingredients])}\n\n"
+                            f"以下の形式でJSONで出力してください：\n"
+                            f"- title: 料理名\n"
+                            f"- ingredients: 必要な材料のリスト\n"
+                            f"- indication: 調理時間（例：約10分）"
+                        }
+                    ],
+                    response_format={
+                        "type": "json_object",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "title": {"type": "string"},
+                                "ingredients": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                },
+                                "indication": {"type": "string"}
+                            },
+                            "required": ["title", "ingredients", "indication"]
+                        }
+                    }
+                )
+
+                result = json.loads(response.choices[0].message.content)
+                return result
+
+            except Exception as e:
+                last_error = e
+                retry_count += 1
+                print(f"OpenAI API error (attempt {retry_count}/{max_retries}): {str(e)}")
+                if retry_count < max_retries:
+                    # 1秒待ってからリトライ
+                    import time
+                    time.sleep(1)
+                    continue
+
+        # すべてのリトライが失敗した場合
+        print(f"All retries failed. Last error: {str(last_error)}")
+        raise HTTPException(status_code=500, detail=f"献立提案エラー: {str(last_error)}")
 
     except Exception as e:
         print(f"Menu suggestion error: {str(e)}")
