@@ -5,4 +5,5 @@ export type ResponseTypes = {
   amount: number;
   unit: string;
   content?: string;
+  category: string;
 };

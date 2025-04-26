@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import useStorage from "@/hooks/useStorage";
 import { theme } from "@/theme/theme";
 import { ResponseTypes } from "@/types/response";
@@ -16,6 +17,9 @@ import { useEffect, useState } from "react";
 dayjs.locale("ja");
 const { confirm } = Modal;
 
+const units = ["g", "kg", "ml", "L", "個", "枚", "本"];
+const categories = ["肉", "野菜", "魚", "調味料", "お菓子", "飲料", "その他"];
+
 const EditAndCreate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,7 +32,8 @@ const EditAndCreate = () => {
     expiration_date: dayjs().format("YYYY-MM-DD"),
     image_url: "",
     amount: 0,
-    unit: ""
+    unit: "",
+    category: ""
   });
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +46,8 @@ const EditAndCreate = () => {
           expiration_date: item.expiration_date || dayjs().format("YYYY-MM-DD"),
           image_url: item.image_url || "",
           amount: item.amount || 0,
-          unit: item.unit || ""
+          unit: item.unit || "",
+          category: item.category || ""
         });
       }
     }
@@ -92,6 +98,9 @@ const EditAndCreate = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {formData.image_url && (
+              <img src={formData.image_url} alt="商品画像" className="w-full h-60 object-cover" />
+            )}
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium">
                 商品名
@@ -128,6 +137,66 @@ const EditAndCreate = () => {
                 onChange={handleChange}
                 placeholder="https://example.com/image.jpg"
               />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="amount" className="text-sm font-medium">
+                分量
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  required
+                />
+                <Select
+                  value={formData.unit}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      unit: value
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="w-24">
+                    <SelectValue placeholder="単位" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {unit}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="category" className="text-sm font-medium">
+                分類
+              </label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    category: value
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="分類を選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-between space-x-2 pt-4">
 
