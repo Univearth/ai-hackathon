@@ -300,14 +300,48 @@ const Expiration = () => {
   // モーダルのOK処理
   const handleOk = () => {
     setIsModalOpen(false);
+
+    // レシピデータをlocalStorageに保存
+    if (selectedRecipe) {
+      try {
+        // 既存のレシピ一覧を取得
+        const savedRecipes = JSON.parse(
+          localStorage.getItem("savedRecipes") || "[]"
+        );
+
+        // 現在のレシピに一意のIDと日時を追加
+        const recipeToSave = {
+          ...selectedRecipe,
+          id: `recipe-${Date.now()}`,
+          savedAt: new Date().toISOString(),
+        };
+
+        // 先頭に追加して保存
+        localStorage.setItem(
+          "savedRecipes",
+          JSON.stringify([recipeToSave, ...savedRecipes])
+        );
+
+        toast({
+          title: "レシピを保存しました",
+          description: "レシピページに移動します",
+        });
+      } catch (error) {
+        console.error("レシピの保存に失敗しました:", error);
+        toast({
+          title: "エラー",
+          description: "レシピの保存に失敗しました",
+          variant: "destructive",
+        });
+      }
+    }
+
     // 選択をリセット
     setSelectedItems({});
     setIsSelectionMode(false);
 
-    toast({
-      title: "レシピ確認完了",
-      description: "選択したアイテムからレシピを生成しました",
-    });
+    // /menuページに遷移
+    router.push("/menu");
   };
 
   const handleDelete = async () => {
@@ -400,7 +434,7 @@ const Expiration = () => {
                 size="sm"
                 onClick={toggleSelectionMode}
               >
-                複数選択
+                献立を作る
               </Button>
               <input
                 type="file"
@@ -422,7 +456,7 @@ const Expiration = () => {
                 disabled={selectedCount === 0}
               >
                 <Check className="mr-2 h-4 w-4" />
-                選択確定 ({selectedCount})
+                AIに献立を聞く ({selectedCount})
               </Button>
             </>
           )}
