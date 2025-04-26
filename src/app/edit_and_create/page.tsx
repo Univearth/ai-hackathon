@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import useStorage, { FoodItem } from "@/hooks/useStorage";
+import useStorage from "@/hooks/useStorage";
+import { ResponseTypes } from "@/types/response";
 import { CameraIcon } from "@heroicons/react/24/outline";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // 日本語ロケールを設定
 dayjs.locale("ja");
@@ -20,27 +21,30 @@ const EditAndCreate = () => {
   const id = searchParams.get("id");
   const { addFoodItem, editFoodItemById, getItemById } = useStorage();
 
-  const [formData, setFormData] = useState<FoodItem>({
+  const [formData, setFormData] = useState<ResponseTypes>({
     name: "",
     expiration_date: dayjs().format("YYYY-MM-DD"),
-    image_url: ""
+    image_url: "",
+    amount: 0,
+    unit: ""
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      const item = getItemById(id);
-      if (item) {
-        const content = JSON.parse(item.content);
-        setFormData({
-          name: content.name || "",
-          expiration_date: content.expiration_date || dayjs().format("YYYY-MM-DD"),
-          image_url: content.image_url || ""
-        });
-      }
-    }
-    setLoading(false);
-  }, [id, getItemById]);
+  // useEffect(() => {
+  //   if (id) {
+  //     const item = getItemById(id);
+  //     if (item) {
+  //       setFormData({
+  //         name: item.name || "",
+  //         expiration_date: item.expiration_date || dayjs().format("YYYY-MM-DD"),
+  //         image_url: item.image_url || "",
+  //         amount: item.amount || 0,
+  //         unit: item.unit || ""
+  //       });
+  //     }
+  //   }
+  //   setLoading(false);
+  // }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

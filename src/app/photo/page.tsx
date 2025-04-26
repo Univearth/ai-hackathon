@@ -1,6 +1,7 @@
 'use client';
 
 import Notification from '@/components/Notification';
+import useStorage from '@/hooks/useStorage';
 import { theme } from '@/theme/theme';
 import { NotificationTypes } from '@/types/notification';
 import {
@@ -9,12 +10,14 @@ import {
 } from '@heroicons/react/24/outline';
 import { ConfigProvider, GetProp, Modal, Upload, UploadProps } from 'antd';
 import { UploadChangeParam, UploadFile } from 'antd/es/upload/index';
+import dayjs from 'dayjs';
 import { useCallback, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 
 type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0];
 
 const Receipt = () => {
+  const { addFoodItem } = useStorage();
   const camera = useRef<Webcam>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceNumber, setDeviceNumber] = useState(0);
@@ -92,7 +95,7 @@ const Receipt = () => {
       text: '送信中...',
       subText: 'ファイルを送信しています。',
       type: 'none',
-      timeout: 10000000000,
+      timeout: 30000,
     });
 
     try {
@@ -113,9 +116,10 @@ const Receipt = () => {
       setNotificationInfo({
         open: true,
         text: '送信成功',
-        subText: `商品名: ${data.name}\n期限: ${data.expiration_date}\n分量: ${data.amount}${data.unit}`,
+        subText: `商品名: ${data.name}\n期限: ${dayjs(data.expiration_date).format('YYYY年M月D日')}\n分量: ${data.amount}${data.unit}`,
         type: 'checked',
       });
+      addFoodItem(data);
     } catch (e) {
       console.error('Error in handleSubmit:', e);
       setNotificationInfo({

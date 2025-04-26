@@ -2,47 +2,18 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import useStorage, { FoodItem } from "@/hooks/useStorage";
+import useStorage from "@/hooks/useStorage";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { CalendarIcon, PencilIcon, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 // 日本語ロケールを設定
 dayjs.locale("ja");
 
 const Expiration = () => {
-  const { getItems } = useStorage();
-  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
-
-  useEffect(() => {
-    // useStorageからデータを取得して変換
-    const storageItems = getItems();
-    const mappedItems = storageItems.map(item => {
-      // content文字列をJSONとして解析
-      try {
-        const parsedContent = JSON.parse(item.content);
-        return {
-          id: item.id,
-          name: parsedContent.name || "不明",
-          expiration_date: parsedContent.expiration_date || dayjs().format(),
-          image_url: parsedContent.image_url || "",
-        };
-      } catch (error) {
-        console.error("Failed to parse item content:", error);
-        return {
-          id: item.id,
-          name: "データエラー",
-          expiration_date: dayjs().format(),
-          image_url: "",
-        };
-      }
-    });
-
-    setFoodItems(mappedItems);
-  }, []);
+  const { responses: foodItems } = useStorage();
 
   // dayjsを使用した日付フォーマット
   const formatDate = (dateString: string) => {
@@ -78,7 +49,7 @@ const Expiration = () => {
             const daysRemaining = getDaysRemaining(item.expiration_date);
 
             return (
-              <Card key={item.id} className="overflow-hidden">
+              <Card key={item.image_url} className="overflow-hidden">
                 <div className="relative aspect-video bg-muted">
                   {item.image_url ? (
                     <Image
@@ -93,7 +64,7 @@ const Expiration = () => {
                     </div>
                   )}
                   <Link
-                    href={`/edit_and_create?id=${item.id}`}
+                    href={`/edit_and_create?image_url=${item.image_url}`}
                     className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100"
                   >
                     <PencilIcon className="h-4 w-4 text-gray-600" />

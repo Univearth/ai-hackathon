@@ -1,24 +1,11 @@
+'use client';
+
+import { ResponseTypes } from '@/types/response';
 import { useAtom } from 'jotai';
 import { atomWithStorage } from 'jotai/utils';
 
-// Define the FoodItem type for use in the expiration page
-export type FoodItem = {
-  id?: string;
-  name: string;
-  expiration_date: string;
-  image_url: string;
-};
-
-// Define the response type for storage
-export type ResponseType = {
-  id: string;
-  content: string;
-  createdAt: string;
-  // Add any other properties needed for responses
-};
-
 // Create an atom with localStorage persistence
-const responsesAtom = atomWithStorage<ResponseType[]>('responses', []);
+const responsesAtom = atomWithStorage<ResponseTypes[]>('responses', []);
 
 export const useStorage = () => {
   const [responses, setResponses] = useAtom(responsesAtom);
@@ -26,26 +13,21 @@ export const useStorage = () => {
   /**
    * Add a new item to storage
    */
-  const setItem = (response: ResponseType) => {
+  const setItem = (response: ResponseTypes) => {
     setResponses((prev) => [...prev, response]);
   };
 
   /**
    * Add a new food item to storage
    */
-  const addFoodItem = (foodItem: FoodItem) => {
-    const newResponse: ResponseType = {
-      id: crypto.randomUUID(),
-      content: JSON.stringify(foodItem),
-      createdAt: new Date().toISOString(),
-    };
-    setItem(newResponse);
+  const addFoodItem = (foodItem: ResponseTypes) => {
+    setItem(foodItem);
   };
 
   /**
    * Edit an item at the specified index
    */
-  const editItem = (index: number, updatedResponse: ResponseType) => {
+  const editItem = (index: number, updatedResponse: ResponseTypes) => {
     setResponses((prev) => {
       const newResponses = [...prev];
       newResponses[index] = updatedResponse;
@@ -56,13 +38,13 @@ export const useStorage = () => {
   /**
    * Edit a food item by id
    */
-  const editFoodItemById = (id: string, foodItem: FoodItem) => {
+  const editFoodItemById = (image_url: string, foodItem: ResponseTypes) => {
     setResponses((prev) => {
       return prev.map(item => {
-        if (item.id === id) {
+        if (item.image_url === image_url) {
           return {
             ...item,
-            content: JSON.stringify(foodItem),
+            ...foodItem,
           };
         }
         return item;
@@ -73,15 +55,15 @@ export const useStorage = () => {
   /**
    * Get all items from storage
    */
-  const getItems = (): ResponseType[] => {
+  const getItems = (): ResponseTypes[] => {
     return responses;
   };
 
   /**
    * Get a specific item by id
    */
-  const getItemById = (id: string): ResponseType | undefined => {
-    return responses.find(item => item.id === id);
+  const getItemById = (image_url: string): ResponseTypes | undefined => {
+    return responses.find(item => item.image_url === image_url);
   };
 
   /**
@@ -94,8 +76,8 @@ export const useStorage = () => {
   /**
    * Delete an item by id
    */
-  const deleteItemById = (id: string) => {
-    setResponses((prev) => prev.filter(item => item.id !== id));
+  const deleteItemById = (image_url: string) => {
+    setResponses((prev) => prev.filter(item => item.image_url !== image_url));
   };
 
   /**
@@ -106,6 +88,7 @@ export const useStorage = () => {
   };
 
   return {
+    responses,
     setItem,
     addFoodItem,
     editItem,
