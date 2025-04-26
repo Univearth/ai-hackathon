@@ -135,7 +135,9 @@ const Expiration = () => {
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm mb-2">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span>賞味期限: {formatDate(item.expiration_date)}</span>
+                    <span>賞味期限: <span className={`${daysRemaining <= 7 ? 'text-red-500' : ''}`}>
+                      {formatDate(item.expiration_date)}
+                    </span></span>
                   </div>
                   {/* グラデーションバー追加 */}
                   <div className="w-full h-3 bg-muted rounded my-2">
