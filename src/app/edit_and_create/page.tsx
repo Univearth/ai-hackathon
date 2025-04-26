@@ -141,12 +141,12 @@ const EditAndCreate = () => {
                   type="button"
                   variant="outline"
                   onClick={() => router.push("/expiration")}
-              >
-                キャンセル
-              </Button>
-              <Button type="submit" variant="default">
-                {id ? "保存" : "追加"}
-              </Button>
+                >
+                  キャンセル
+                </Button>
+                <Button type="submit" variant="default">
+                  {id ? "保存" : "追加"}
+                </Button>
               </div>
             </div>
           </form>
