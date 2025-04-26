@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStorage } from "@/hooks/useStorage";
+import { useState } from "react";
 
 type Menu = {
   menu: string;
@@ -124,10 +125,7 @@ const RecipeSuggestion = () => {
                   </ul>
                 </div>
 
-                <Button
-                  onClick={handleGetRecipe}
-                  disabled={loading}
-                >
+                <Button onClick={handleGetRecipe} disabled={loading}>
                   {loading ? "レシピを取得中..." : "レシピを表示する"}
                 </Button>
               </div>
@@ -138,7 +136,9 @@ const RecipeSuggestion = () => {
                 <h2 className="text-xl font-bold">{recipe.title}</h2>
 
                 <div>
-                  <h3 className="font-semibold mb-2">材料（{recipe.servings}人前）</h3>
+                  <h3 className="font-semibold mb-2">
+                    材料（{recipe.servings}人前）
+                  </h3>
                   <ul className="list-disc list-inside">
                     {recipe.ingredients.map((ingredient, index) => (
                       <li key={index}>{ingredient}</li>
@@ -150,7 +150,9 @@ const RecipeSuggestion = () => {
                   <h3 className="font-semibold mb-2">調理手順</h3>
                   <ol className="list-decimal list-inside">
                     {recipe.instructions.map((step, index) => (
-                      <li key={index} className="mb-2">{step}</li>
+                      <li key={index} className="mb-2">
+                        {step}
+                      </li>
                     ))}
                   </ol>
                 </div>
