@@ -2,11 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ProductFilter } from "@/components/ui/ProductFilter";
+import { toast } from "@/components/ui/use-toast";
 import useStorage from "@/hooks/useStorage";
+import { Modal } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { BarChart2, CalendarIcon, CameraIcon, PencilIcon, PlusCircle } from "lucide-react";
+import { BarChart2, CalendarIcon, CameraIcon, Check, PencilIcon, PlusCircle, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,9 +18,19 @@ import React, { useState } from "react";
 // 日本語ロケールを設定
 dayjs.locale("ja");
 
+// メニューデータの型定義
+type MenuItem = {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  category?: string;
+  imageUrl?: string;
+}
+
 const Expiration = () => {
   const router = useRouter();
-  const { responses: foodItems, addFoodItem } = useStorage();
+  const { responses: foodItems, addFoodItem, deleteItem, deleteItemById } = useStorage();
   const [filters, setFilters] = useState<{
     amount?: number;
     amountType?: "greater" | "less";
@@ -25,6 +38,40 @@ const Expiration = () => {
     category?: string;
   }>({});
   const [sortType, setSortType] = useState<'exp_asc' | 'exp_desc' | 'added'>('exp_asc');
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isMenuLoading, setIsMenuLoading] = useState(false);
+  const [menuError, setMenuError] = useState<string | null>(null);
+
+  // // メニューデータを取得する
+  // useEffect(() => {
+  //   const fetchMenu = async () => {
+  //     setIsMenuLoading(true);
+  //     setMenuError(null);
+  //     try {
+  //       const response = await fetch('/menu');
+  //       if (!response.ok) {
+  //         throw new Error(`APIエラー: ${response.status}`);
+  //       }
+  //       const data = await response.json();
+  //       setMenuItems(data);
+  //     } catch (error) {
+  //       console.error('メニューの取得に失敗しました:', error);
+  //       setMenuError(error instanceof Error ? error.message : '不明なエラー');
+  //       toast({
+  //         title: "エラー",
+  //         description: "メニューデータの取得に失敗しました",
+  //         variant: "destructive"
+  //       });
+  //     } finally {
+  //       setIsMenuLoading(false);
+  //     }
+  //   };
+
+  //   fetchMenu();
+  // }, []);
 
   // dayjsを使用した日付フォーマット
   const formatDate = (dateString: string) => {
@@ -124,44 +171,165 @@ const Expiration = () => {
   };
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  // 選択モードの切り替え
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    if (isSelectionMode) {
+      setSelectedItems({});
+    }
+  };
+
+  // アイテムの選択・選択解除
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  // 全選択・全選択解除
+  const toggleSelectAll = () => {
+    if (Object.keys(selectedItems).length === sortedItems.length) {
+      setSelectedItems({});
+    } else {
+      const newSelectedItems: Record<string, boolean> = {};
+      sortedItems.forEach(item => {
+        newSelectedItems[item.image_url] = true;
+      });
+      setSelectedItems(newSelectedItems);
+    }
+  };
+
+  // 選択されたアイテムの処理
+  const handleSubmit = async () => {
+    const selectedData = sortedItems.filter(item => selectedItems[item.image_url]);
+
+    if (selectedData.length === 0) {
+      toast({
+        title: "選択エラー",
+        description: "アイテムが選択されていません",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // 選択したデータを処理する
+    console.log("選択されたアイテム:", selectedData);
+
+    const menuResponse = await fetch('/api/menu', {
+      method: 'POST',
+      body: JSON.stringify(selectedData),
+    });
+
+    const menuData = await menuResponse.json();
+    console.log("メニューデータ:", menuData);
+
+
+    // 例: ここで選択したデータをどこかに渡す処理を追加
+    // router.push({
+    //   pathname: '/selected-items',
+    //   query: { data: JSON.stringify(selectedData) }
+    // });
+
+    toast({
+      title: "選択完了",
+      description: `${selectedData.length}個のアイテムが選択されました`,
+    });
+  };
+
+
+  const handleDelete = async () => {
+    const selectedData = sortedItems.filter(item => selectedItems[item.image_url]);
+    console.log("選択されたアイテム:", selectedData);
+    selectedData.forEach(item => {
+      deleteItemById(item.image_url);
+    });
+
+    // 削除後に選択をリセット
+    setSelectedItems({});
+
+    toast({
+      title: "削除完了",
+      description: `${selectedData.length}個のアイテムが削除されました`,
+    });
+  };
+
+  const selectedCount = Object.values(selectedItems).filter(Boolean).length;
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <div className="flex gap-2">
-          <Button asChild variant="default" size="sm">
-            <Link href="/edit_and_create">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              食品を追加
-            </Link>
-          </Button>
-          <Button asChild variant="default" size="sm">
-            <Link href="/photo">
-              <CameraIcon className="mr-2 h-4 w-4" />
-              写真を撮る
-            </Link>
-          </Button>
-          <Button asChild variant="default" size="sm">
-            <Link href="/graph">
-              <BarChart2 className="mr-2 h-4 w-4" />
-              グラフを見る
-            </Link>
-          </Button>
+          {!isSelectionMode ? (
+            <>
+              <Button asChild variant="default" size="sm">
+                <Link href="/edit_and_create">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  食品を追加
+                </Link>
+              </Button>
+              <Button asChild variant="default" size="sm">
+                <Link href="/photo">
+                  <CameraIcon className="mr-2 h-4 w-4" />
+                  写真を撮る
+                </Link>
+              </Button>
+              <Button asChild variant="default" size="sm">
+                <Link href="/graph">
+                  <BarChart2 className="mr-2 h-4 w-4" />
+                  グラフを見る
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="default" size="sm" onClick={toggleSelectAll}>
+                {Object.keys(selectedItems).length === sortedItems.length ? '全選択解除' : '全選択'}
+              </Button>
+              <Button variant="destructive" size="sm" disabled={selectedCount === 0} onClick={handleDelete}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                選択削除
+              </Button>
+            </>
+          )}
         </div>
-        {/* JSONエクスポートボタン */}
+
         <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={handleExportJson}>
-            JSONエクスポート
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-            JSONインポート
-          </Button>
-          <input
-            type="file"
-            accept="application/json"
-            ref={fileInputRef}
-            onChange={handleImportJson}
-            className="hidden"
-          />
+          {!isSelectionMode ? (
+            <>
+              <Button type="button" variant="outline" size="sm" onClick={handleExportJson}>
+                JSONエクスポート
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                JSONインポート
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={toggleSelectionMode}>
+                複数選択
+              </Button>
+              <input
+                type="file"
+                accept="application/json"
+                ref={fileInputRef}
+                onChange={handleImportJson}
+                className="hidden"
+              />
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={toggleSelectionMode}>
+                キャンセル
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSubmit}
+                disabled={selectedCount === 0}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                選択確定 ({selectedCount})
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -199,15 +367,30 @@ const Expiration = () => {
           <p className="text-muted-foreground">データがありません</p>
         </div>
       ) : (
-        <div  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedItems.map((item) => {
             const daysRemaining = getDaysRemaining(item.expiration_date);
             const percent = maxDays > 0 ? Math.max((daysRemaining / maxDays) * 100, 5) : 5;
             const gradient = getGradient(daysRemaining);
 
             return (
-              <Card key={item.image_url} className="overflow-hidden">
-                <div className="relative aspect-video bg-muted">
+              <Card
+                key={item.image_url}
+                className={`overflow-hidden relative ${isSelectionMode && selectedItems[item.image_url] ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+              >
+                {isSelectionMode && (
+                  <div className="absolute top-2 left-2 z-10">
+                    <Checkbox
+                      checked={!!selectedItems[item.image_url]}
+                      onCheckedChange={() => toggleItemSelection(item.image_url)}
+                      className="h-5 w-5 bg-white border-gray-300"
+                    />
+                  </div>
+                )}
+                <div
+                  className="relative aspect-video bg-muted"
+                  onClick={() => isSelectionMode && toggleItemSelection(item.image_url)}
+                >
                   {item.image_url ? (
                     <Image
                       src={item.image_url}
@@ -220,12 +403,14 @@ const Expiration = () => {
                       <span className="text-muted-foreground">画像なし</span>
                     </div>
                   )}
-                  <Link
-                    href={`/edit_and_create?data=${encodeURIComponent(JSON.stringify(item))}`}
-                    className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100"
-                  >
-                    <PencilIcon className="h-4 w-4 text-gray-600" />
-                  </Link>
+                  {!isSelectionMode && (
+                    <Link
+                      href={`/edit_and_create?data=${encodeURIComponent(JSON.stringify(item))}`}
+                      className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100"
+                    >
+                      <PencilIcon className="h-4 w-4 text-gray-600" />
+                    </Link>
+                  )}
                 </div>
                 <CardHeader>
                   <CardTitle className="text-xl">{item.name}</CardTitle>
@@ -270,6 +455,17 @@ const Expiration = () => {
           })}
         </div>
       )}
+<Modal
+
+open={isModalOpen}
+onCancel={handleCancel}
+onOk={}
+>
+  <p>Some contents...</p>
+  <p>Some contents...</p>
+  <p>Some contents...</p>
+</Modal>
+
     </div>
   );
 };
