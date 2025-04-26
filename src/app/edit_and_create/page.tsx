@@ -18,7 +18,7 @@ dayjs.locale("ja");
 const EditAndCreate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  const id = searchParams.get("data");
   const { addFoodItem, editFoodItemById, getItemById } = useStorage();
 
   const [formData, setFormData] = useState<ResponseTypes>({
@@ -32,7 +32,7 @@ const EditAndCreate = () => {
 
   useEffect(() => {
     if (id) {
-      const item = getItemById(id);
+      const item = JSON.parse(id);
       if (item) {
         setFormData({
           name: item.name || "",
@@ -64,7 +64,7 @@ const EditAndCreate = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (id) {
-      editFoodItemById(id, formData);
+      editFoodItemById(formData.image_url, formData);
     } else {
       addFoodItem(formData);
     }
