@@ -31,6 +31,11 @@ const Expiration = () => {
     return dayjs(dateString).format("YYYY年MM月DD日");
   };
 
+  // expiration_typeに基づいてラベルを取得
+  const getExpirationLabel = (expirationType?: string) => {
+    return expirationType === "use_by" ? "消費期限" : "賞味期限";
+  };
+
   // dayjsを使用した残り日数計算
   const getDaysRemaining = (dateString: string) => {
     const today = dayjs().startOf("day");
@@ -171,14 +176,14 @@ const Expiration = () => {
           size="sm"
           onClick={() => setSortType('exp_asc')}
         >
-          賞味期限が近い順
+          期限が近い順
         </Button>
         <Button
           variant={sortType === 'exp_desc' ? 'default' : 'outline'}
           size="sm"
           onClick={() => setSortType('exp_desc')}
         >
-          賞味期限が遠い順
+          期限が遠い順
         </Button>
         <Button
           variant={sortType === 'added' ? 'default' : 'outline'}
@@ -228,7 +233,7 @@ const Expiration = () => {
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm mb-2">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span>賞味期限: <span className={`${daysRemaining <= 7 ? 'text-red-500' : ''}`}>
+                    <span>{getExpirationLabel(item.expiration_type)}: <span className={`${daysRemaining <= 7 ? 'text-red-500' : ''}`}>
                       {formatDate(item.expiration_date)}
                     </span></span>
                   </div>

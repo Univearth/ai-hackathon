@@ -11,6 +11,11 @@ const ExpirationGraph = ({ items }: { items: ResponseTypes[] }) => {
   const today = dayjs();
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
+  // expiration_typeに基づいてラベルを取得
+  const getExpirationLabel = (expirationType?: string) => {
+    return expirationType === "use_by" ? "消費期限" : "賞味期限";
+  };
+
   const maxDays = Math.max(
     ...items.map((item) => dayjs(item.expiration_date).diff(today, "day"))
   );
@@ -36,31 +41,24 @@ const ExpirationGraph = ({ items }: { items: ResponseTypes[] }) => {
   });
 
   return (
-    <div className="w-full space-y-6 p-4">
-      <div className="flex items-center gap-3 justify-end mb-6">
+    <div className="w-full p-4">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">期限グラフ</h2>
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setSortOrder('asc')}
-          className={cn(
-            "transition-colors duration-200",
-            sortOrder === 'asc' ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
-          )}
+          onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+          className="flex items-center gap-1"
         >
-          <span className="mr-2">期限が近い順</span>
-          <ArrowUpIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSortOrder('desc')}
-          className={cn(
-            "transition-colors duration-200",
-            sortOrder === 'desc' ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
+          {sortOrder === 'asc' ? (
+            <>
+              期限が近い順 <ArrowUpIcon className="h-4 w-4" />
+            </>
+          ) : (
+            <>
+              期限が遠い順 <ArrowDownIcon className="h-4 w-4" />
+            </>
           )}
-        >
-          <span className="mr-2">期限が遅い順</span>
-          <ArrowDownIcon className="h-4 w-4" />
         </Button>
       </div>
 
@@ -98,6 +96,9 @@ const ExpirationGraph = ({ items }: { items: ResponseTypes[] }) => {
                   >
                     {daysLeft <= 0 ? "期限切れ" : `${daysLeft}日`}
                   </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {getExpirationLabel(item.expiration_type)}: {dayjs(item.expiration_date).format("YYYY年MM月DD日")}
                 </div>
                 <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
                   <div

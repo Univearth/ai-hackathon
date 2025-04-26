@@ -9,6 +9,7 @@ import { theme } from "@/theme/theme";
 import { ResponseTypes } from "@/types/response";
 import { CameraIcon, PhotoIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { ConfigProvider, DatePicker, Modal } from "antd";
+import ja_JP from "antd/locale/ja_JP";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,6 +20,10 @@ const { confirm } = Modal;
 
 const units = ["g", "kg", "ml", "L", "個", "枚", "本"];
 const categories = ["肉", "野菜", "魚", "調味料", "お菓子", "飲料", "その他"];
+const expirationTypes = [
+  { value: "best_before", label: "賞味期限" },
+  { value: "use_by", label: "消費期限" },
+];
 
 const EditAndCreate = () => {
   const router = useRouter();
@@ -30,6 +35,7 @@ const EditAndCreate = () => {
   const [formData, setFormData] = useState<ResponseTypes>({
     name: "",
     expiration_date: dayjs().format("YYYY-MM-DD"),
+    expiration_type: "best_before",
     image_url: "",
     amount: 0,
     unit: "",
@@ -47,6 +53,7 @@ const EditAndCreate = () => {
         setFormData({
           name: item.name || "",
           expiration_date: item.expiration_date || dayjs().format("YYYY-MM-DD"),
+          expiration_type: item.expiration_type || "best_before",
           image_url: item.image_url || "",
           amount: item.amount || 0,
           unit: item.unit || "",
@@ -169,16 +176,49 @@ const EditAndCreate = () => {
             </div>
             <div className="space-y-2">
               <label htmlFor="expiration_date" className="text-sm font-medium">
-                賞味期限
+                期限日
               </label>
               <DatePicker
+                lang="ja"
+                locale={{
+                  lang: ja_JP as any,
+                  timePickerLocale: {
+                    placeholder: "選択してください"
+                  }
+                }}
                 id="expiration_date"
                 name="expiration_date"
-                format="YYYY年M月D日"
+                format="YYYY年M月D日 H:mm"
                 className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={formData.expiration_date ? dayjs(formData.expiration_date) : undefined}
+                value={formData.expiration_date ? dayjs(formData.expiration_date).locale("ja").add(-9, "hour") : undefined}
                 onChange={handleDateChange}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="expiration_type" className="text-sm font-medium">
+                期限タイプ
+              </label>
+              <Select
+                value={formData.expiration_type || "best_before"}
+                onValueChange={(value: "best_before" | "use_by") => {
+                  setFormData(prev => ({
+                    ...prev,
+                    expiration_type: value
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="期限タイプを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  {expirationTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
