@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-import ollama
 from minio import Minio
 import os
 import uuid
@@ -10,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import tempfile
 import base64
-import requests
+from openai import OpenAI
 
 # 環境変数の読み込み
 load_dotenv()
@@ -24,6 +23,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],  # すべてのHTTPメソッドを許可
     allow_headers=["*"],  # すべてのヘッダーを許可
+)
+
+client = OpenAI(
+    base_url = 'https://ollama.yashikota.com/v1',
+    api_key='ollama', # required, but unused
 )
 
 class ProductInfo(BaseModel):
@@ -78,85 +82,95 @@ async def analyze_image(file: UploadFile = File(...)):
             with open(temp_file_path, 'rb') as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode('utf-8')
 
-            # OllamaのAPIにリクエストを送信
+            # OpenAIクライアントを使用してリクエストを送信
             try:
-                response = requests.post(
-                    "https://ollama.yashikota.com/api/chat",
-                    json={
-                        "model": "gemma3:27b",
-                        "messages": [
-                            {
-                                "role": "user",
-                                "content": "この写真から以下の情報をJSON形式で出力してください：\n"
-                                "1. 商品名 (日本語で)\n"
-                                "2. 賞味期限または消費期限（ISO 8601形式で）\n"
-                                "   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n"
-                                "   - 年が2桁で表記されている場合は、2000年代として解釈してください\n"
-                                "   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n"
-                                "   - 時間が記載されていない場合は、00:00:00として出力してください\n"
-                                "3. 画像URL（空文字列で構いません）\n"
-                                "4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n"
-                                "5. 単位（以下のいずれかから選択）：\n"
-                                "   - g\n"
-                                "   - kg\n"
-                                "   - ml\n"
-                                "   - L\n"
-                                "   - 個\n"
-                                "   - 枚\n"
-                                "   - 本\n"
-                                "6. 分類（以下のいずれかから選択）：\n"
-                                "   - 肉\n"
-                                "   - 野菜\n"
-                                "   - 魚\n"
-                                "   - 調味料\n"
-                                "   - お菓子\n"
-                                "   - 飲料\n"
-                                "   - その他\n"
-                                "JSONのキーは以下の通りです：\n"
-                                "- name\n"
-                                "- expiration_date\n"
-                                "- image_url\n"
-                                "- amount\n"
-                                "- unit\n"
-                                "- category",
-                                "images": [base64_image]
-                            }
-                        ],
-                        "format": {
+                print("Sending request to OpenAI API...")
+                response = client.chat.completions.create(
+                    model="gemma3:27b",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "この写真から以下の情報をJSON形式で出力してください：\n"
+                                    "1. 商品名 (日本語で)\n"
+                                    "2. 賞味期限または消費期限（ISO 8601形式で）\n"
+                                    "   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n"
+                                    "   - 年が2桁で表記されている場合は、2000年代として解釈してください\n"
+                                    "   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n"
+                                    "   - 時間が記載されていない場合は、00:00:00として出力してください\n"
+                                    "   - 賞味期限と消費期限を区別して認識してください\n"
+                                    "   - 賞味期限の場合は「best_before」、消費期限の場合は「use_by」として出力してください\n"
+                                    "   - 区別ができない場合は「best_before」として出力してください\n"
+                                    "3. 画像URL（空文字列で構いません）\n"
+                                    "4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n"
+                                    "5. 単位（以下のいずれかから選択）：\n"
+                                    "   - g\n"
+                                    "   - kg\n"
+                                    "   - ml\n"
+                                    "   - L\n"
+                                    "   - 個\n"
+                                    "   - 枚\n"
+                                    "   - 本\n"
+                                    "6. 分類（以下のいずれかから選択）：\n"
+                                    "   - 肉\n"
+                                    "   - 野菜\n"
+                                    "   - 魚\n"
+                                    "   - 調味料\n"
+                                    "   - お菓子\n"
+                                    "   - 飲料\n"
+                                    "   - その他\n"
+                                    "JSONのキーは以下の通りです：\n"
+                                    "- name\n"
+                                    "- expiration_date\n"
+                                    "- expiration_type\n"
+                                    "- image_url\n"
+                                    "- amount\n"
+                                    "- unit\n"
+                                    "- category"
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{base64_image}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    response_format={
+                        "type": "json_object",
+                        "schema": {
                             "type": "object",
                             "properties": {
                                 "name": {"type": "string"},
                                 "expiration_date": {"type": "string"},
+                                "expiration_type": {"type": "string", "enum": ["best_before", "use_by"]},
                                 "image_url": {"type": "string"},
                                 "amount": {"type": "number"},
                                 "unit": {"type": "string"},
                                 "category": {"type": "string"}
                             },
-                            "required": ["name", "expiration_date", "image_url", "amount", "unit", "category"]
+                            "required": ["name", "expiration_date", "expiration_type", "image_url", "amount", "unit", "category"]
                         }
                     }
                 )
-
-                if response.status_code != 200:
-                    print(f"Ollama API error: {response.status_code} - {response.text}")
-                    raise HTTPException(status_code=500, detail=f"Ollama API error: {response.text}")
+                print(f"OpenAI API response: {response}")
 
                 # レスポンスをJSONとしてパース
-                result = json.loads(response.json()['message']['content'])
+                result = json.loads(response.choices[0].message.content)
+                print(f"Parsed result: {result}")
                 # 画像URLを設定
                 result["image_url"] = image_url
 
                 return result
 
-            except requests.exceptions.RequestException as e:
-                print(f"Request error: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"APIリクエストエラー: {str(e)}")
-            except json.JSONDecodeError as e:
-                print(f"JSON decode error: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"JSONデコードエラー: {str(e)}")
             except Exception as e:
-                print(f"Unexpected error: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"予期せぬエラー: {str(e)}")
+                print(f"OpenAI API error: {str(e)}")
+                print(f"Error type: {type(e)}")
+                print(f"Error args: {e.args}")
+                raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
         except Exception as e:
             print(f"Error in image processing: {str(e)}")

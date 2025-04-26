@@ -19,13 +19,19 @@
 ```json
 {
   "name": "商品名（日本語）",
-  "expiration_date": "賞味期限（ISO 8601形式）",
+  "expiration_date": "賞味期限または消費期限（ISO 8601形式）",
+  "expiration_type": "best_before または use_by",
   "image_url": "アップロードされた画像のURL",
   "amount": 300.0,  // 分量（数値のみ、単位は含まない）
   "unit": "g",  // 単位（g、kg、ml、L、個、枚、本など）
   "category": "分類（肉、野菜、魚、調味料、お菓子、飲料、その他）"
 }
 ```
+
+**expiration_typeの説明**:
+- `best_before`: 賞味期限の場合
+- `use_by`: 消費期限の場合
+- 区別ができない場合は`best_before`として出力されます
 
 **使用例**:
 ```javascript
