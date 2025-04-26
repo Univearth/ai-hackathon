@@ -127,48 +127,44 @@ const Receipt = () => {
 
   return (
     <ConfigProvider theme={theme}>
-      <div className="h-screen">
-        <div className="h-full">
-          {!confirmImg ? (
-            <Webcam
-              className="w-full h-full"
-              screenshotFormat="image/png"
-              audio={false}
-              ref={camera}
-              videoConstraints={{
-                facingMode: facingMode,
-                deviceId: devices[deviceNumber]?.deviceId,
-              }}
-            />
-          ) : (
-            !isPDF && <img src={image} alt="写真" />
-          )}
-        </div>
-        <div className="bottom-1 flex justify-between">
-          {!fileSelected && (
-            <>
-              <Upload
-                accept="application/pdf,image/*"
-                fileList={fileList}
-                onChange={handleUpload}
-              >
-                <button className="mt-6 p-3  w-[4rem] my-2 h-[4rem] bg-gray-300 rounded-full text-center">
-                  <ArrowUpTrayIcon className="text-white" />
-                </button>
-              </Upload>
-              <button
-                className=" border-gray-300  w-[6rem] my-2 h-[6rem] bg-white border-[8px] text-center rounded-full"
-                onClick={capture}
-              ></button>
-              <button
-                className="mt-6 p-3  w-[4rem] my-2 h-[4rem] bg-gray-300 rounded-full text-center"
-                onClick={handleChangeCamera}
-              >
-                <ArrowPathIcon className="text-white" />
+      <div className="relative h-screen w-screen">
+        {!confirmImg ? (
+          <Webcam
+            className="absolute top-0 left-0 w-full h-full object-cover z-0"
+            screenshotFormat="image/png"
+            audio={false}
+            ref={camera}
+            videoConstraints={{
+              facingMode: facingMode,
+              deviceId: devices[deviceNumber]?.deviceId,
+            }}
+          />
+        ) : (
+          !isPDF && <img src={image} alt="写真" className="w-full h-full object-contain" />
+        )}
+        {!fileSelected && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex justify-center items-center gap-6 z-10">
+            <Upload
+              accept="application/pdf,image/*"
+              fileList={fileList}
+              onChange={handleUpload}
+            >
+              <button className="p-3 w-[4rem] h-[4rem] bg-gray-300 rounded-full text-center flex items-center justify-center">
+                <ArrowUpTrayIcon className="text-white" />
               </button>
-            </>
-          )}
-        </div>
+            </Upload>
+            <button
+              className="border-gray-300 w-[6rem] h-[6rem] bg-white border-[8px] text-center rounded-full flex items-center justify-center"
+              onClick={capture}
+            ></button>
+            <button
+              className="p-3 w-[4rem] h-[4rem] bg-gray-300 rounded-full text-center flex items-center justify-center"
+              onClick={handleChangeCamera}
+            >
+              <ArrowPathIcon className="text-white" />
+            </button>
+          </div>
+        )}
         <Modal
           open={confirmImg}
           okText={'送信'}
