@@ -10,6 +10,8 @@ import uvicorn
 import tempfile
 import base64
 from openai import OpenAI
+import requests
+from typing import List, Optional
 
 # 環境変数の読み込み
 load_dotenv()
@@ -33,10 +35,32 @@ client = OpenAI(
 class ProductInfo(BaseModel):
     name: str
     expiration_date: str
+    expiration_type: str
     image_url: str
-    amount: float  # 分量（例：300.0）
-    unit: str  # 単位（例：g、kg、ml、Lなど）
-    category: str  # 分類（例：肉、野菜、魚、調味料、お菓子など）
+    amount: float
+    unit: str
+    category: str
+
+class MenuRequest(BaseModel):
+    products: List[ProductInfo]
+
+class MenuResponse(BaseModel):
+    title: str
+    ingredients: List[str]
+    indication: str
+
+class RecipeRequest(BaseModel):
+    menu_name: str
+    category: Optional[str] = None
+
+class RecipeResponse(BaseModel):
+    title: str
+    url: str
+    ingredients: List[str]
+    instructions: List[str]
+    difficulty: str
+    cooking_time: str
+    servings: int
 
 # MinIOクライアントの設定
 minio_client = Minio(
@@ -180,6 +204,60 @@ async def analyze_image(file: UploadFile = File(...)):
             # 一時ファイルを削除
             if os.path.exists(temp_file_path):
                 os.unlink(temp_file_path)
+
+@app.post("/suggest-menu")
+async def suggest_menu(request: MenuRequest):
+    try:
+        # 期限が近い順にソート
+        sorted_products = sorted(
+            request.products,
+            key=lambda x: x.expiration_date
+        )
+
+        if not sorted_products:
+            raise HTTPException(status_code=400, detail="食材が登録されていません")
+
+        # 期限が近い3つの商品を選択
+        ingredients = sorted_products[:3]
+
+        # OpenAI APIにリクエストを送信
+        response = client.chat.completions.create(
+            model="gemma3:27b",
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"以下の食材を使って、簡単に作れる料理を提案してください：\n"
+                    f"{', '.join([f'{p.name} ({p.amount}{p.unit})' for p in ingredients])}\n\n"
+                    f"以下の形式でJSONで出力してください：\n"
+                    f"- title: 料理名\n"
+                    f"- ingredients: 必要な材料のリスト\n"
+                    f"- indication: 調理時間（例：約10分）"
+                }
+            ],
+            response_format={
+                "type": "json_object",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "ingredients": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        },
+                        "indication": {"type": "string"}
+                    },
+                    "required": ["title", "ingredients", "indication"]
+                }
+            }
+        )
+
+        result = json.loads(response.choices[0].message.content)
+        return result
+
+    except Exception as e:
+        print(f"Menu suggestion error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"献立提案エラー: {str(e)}")
+
 
 @app.get("/health")
 async def health():
