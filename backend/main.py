@@ -347,13 +347,23 @@ async def health():
 
 @app.post("/callback")
 async def callback(request: Request):
-    signature = request.headers["X-Line-Signature"]
-    body = await request.body()
+    # get X-Line-Signature header value
+    signature = request.headers.get("X-Line-Signature")
+    if signature is None:
+        raise HTTPException(status_code=400, detail="X-Line-Signature header missing")
 
+    # get request body as text
+    body = await request.body()
+    body = body.decode("utf-8")
+
+    # handle webhook body
     try:
-        handler.handle(body.decode(), signature)
+        handler.handle(body, signature)
     except InvalidSignatureError:
-        raise HTTPException(status_code=400, detail="Invalid signature")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid signature. Please check your channel access token/channel secret.",
+        )
 
     return "OK"
 
