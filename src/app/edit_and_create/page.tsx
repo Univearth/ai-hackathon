@@ -1,6 +1,9 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import useStorage, { FoodItem } from "@/hooks/useStorage";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
@@ -10,37 +13,35 @@ import { useEffect, useState } from "react";
 // 日本語ロケールを設定
 dayjs.locale("ja");
 
-type FoodItem = {
-  name: string;
-  expiration_date: string;
-  image_url: string;
-};
-
-const Edit = () => {
+const EditAndCreate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const { addFoodItem, editFoodItemById, getItemById } = useStorage();
 
   const [formData, setFormData] = useState<FoodItem>({
     name: "",
-    expiration_date: "",
+    expiration_date: dayjs().format("YYYY-MM-DD"),
     image_url: ""
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 実際のアプリケーションではここでAPIからデータをフェッチする
-    // サンプルとして、固定データを使用
     if (id) {
-      // このサンプルデータは実際の実装では置き換える必要があります
-      setFormData({
-        name: "チョコシュー",
-        expiration_date: dayjs("2025-05-01T00:00:00Z").format("YYYY-MM-DD"),
-        image_url: ""
-      });
+      const item = getItemById(id);
+      if (item) {
+        const content = JSON.parse(item.content);
+        setFormData({
+          name: content.name || "",
+          expiration_date: content.expiration_date || dayjs().format("YYYY-MM-DD"),
+          image_url: content.image_url || ""
+        });
+      }
     }
-  }, [id]);
+    setLoading(false);
+  }, [id, getItemById]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -48,20 +49,28 @@ const Edit = () => {
     }));
   };
 
+  const handleDateChange = (date: any) => {
+    setFormData(prev => ({
+      ...prev,
+      expiration_date: date ? dayjs(date).format("YYYY-MM-DD") : ""
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // ここでAPIにデータを送信する処理を実装
-    console.log("Saved:", formData);
-
-    // 保存後に元の画面に戻る
+    if (id) {
+      editFoodItemById(id, formData);
+    } else {
+      addFoodItem(formData);
+    }
     router.push("/expiration");
   };
 
+  if (loading) return <div className="p-4">Loading...</div>;
+
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">食品情報の編集</h1>
-
+      <h1 className="text-2xl font-bold mb-6">{id ? "食品情報の編集" : "食品を追加"}</h1>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
           <CardTitle>商品情報</CardTitle>
@@ -72,16 +81,14 @@ const Edit = () => {
               <label htmlFor="name" className="text-sm font-medium">
                 商品名
               </label>
-              <input
+              <Input
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
-
             <div className="space-y-2">
               <label htmlFor="expiration_date" className="text-sm font-medium">
                 賞味期限
@@ -89,32 +96,35 @@ const Edit = () => {
               <DatePicker
                 id="expiration_date"
                 name="expiration_date"
-                format="YYYY月M日D"
-                showTime={true}
+                format="YYYY年M月D日"
                 className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={dayjs(formData.expiration_date)}
-                onChange={(date) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    expiration_date: date.format("YYYY-MM-DD")
-                  }));
-                }}
+                value={formData.expiration_date ? dayjs(formData.expiration_date) : undefined}
+                onChange={handleDateChange}
               />
-           </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="image_url" className="text-sm font-medium">
+                画像URL (オプション)
+              </label>
+              <Input
+                id="image_url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={handleChange}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
             <div className="flex justify-end space-x-2 pt-4">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => router.push("/expiration")}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
               >
                 キャンセル
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                保存
-              </button>
+              </Button>
+              <Button type="submit" variant="default">
+                {id ? "保存" : "追加"}
+              </Button>
             </div>
           </form>
         </CardContent>
@@ -123,4 +133,4 @@ const Edit = () => {
   );
 };
 
-export default Edit;
+export default EditAndCreate;

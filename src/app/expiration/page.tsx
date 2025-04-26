@@ -61,7 +61,7 @@ const Expiration = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">食品期限管理</h1>
         <Button asChild variant="default" size="sm">
-          <Link href="/add">
+          <Link href="/edit_and_create">
             <PlusCircle className="mr-2 h-4 w-4" />
             食品を追加
           </Link>
@@ -93,7 +93,7 @@ const Expiration = () => {
                     </div>
                   )}
                   <Link
-                    href={`/edit?id=${item.id}`}
+                    href={`/edit_and_create?id=${item.id}`}
                     className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100"
                   >
                     <PencilIcon className="h-4 w-4 text-gray-600" />
