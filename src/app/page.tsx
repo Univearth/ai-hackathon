@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import useStorage from "@/hooks/useStorage";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { CalendarIcon, PencilIcon, PlusCircle } from "lucide-react";
+import { CalendarIcon, CameraIcon, PencilIcon, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -31,12 +31,20 @@ const Expiration = () => {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">食品期限管理</h1>
-        <Button asChild variant="default" size="sm">
-          <Link href="/edit_and_create">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            食品を追加
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="default" size="sm">
+            <Link href="/edit_and_create">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              食品を追加
+            </Link>
+          </Button>
+          <Button asChild variant="default" size="sm">
+            <Link href="/photo">
+              <CameraIcon className="mr-2 h-4 w-4" />
+              写真を撮る
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {foodItems.length === 0 ? (

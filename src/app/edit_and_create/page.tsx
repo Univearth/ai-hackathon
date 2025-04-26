@@ -70,7 +70,7 @@ const EditAndCreate = () => {
     } else {
       addFoodItem(formData);
     }
-    router.push("/expiration");
+    router.push("/");
   };
 
   if (loading) return <div className="p-4">Loading...</div>;
