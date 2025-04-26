@@ -198,18 +198,18 @@ const EditAndCreate = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-between space-x-2 pt-4">
-
-              <Button
-                type="button"
-
-                variant="default"
-                onClick={() => router.push("/photo")}
-              >
-                <CameraIcon className="w-4 h-4 mr-2" />
-                写真を撮る
-              </Button>
-              <div className="flex justify-end space-x-2">
+            <div className="flex justify-between items-center space-x-2 pt-4">
+              {!formData.image_url && (
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={() => router.push("/photo")}
+                >
+                  <CameraIcon className="w-4 h-4 mr-2" />
+                  写真を撮る
+                </Button>
+              )}
+              <div className="flex space-x-2">
                 <Button
                   type="button"
                   variant="outline"
