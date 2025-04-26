@@ -23,7 +23,7 @@ const categories = ["肉", "野菜", "魚", "調味料", "お菓子", "飲料", 
 const EditAndCreate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  const data = searchParams.get("data");
   const [open, setOpen] = useState(false);
   const { addFoodItem, editFoodItemById, getItemById, deleteItemById } = useStorage();
 
@@ -40,8 +40,9 @@ const EditAndCreate = () => {
   const [previewUrl, setPreviewUrl] = useState<string>("");
 
   useEffect(() => {
-    if (id) {
-      const item = getItemById(id);
+    if (data) {
+      const item = JSON.parse(decodeURIComponent(data));
+      console.log(item);
       if (item) {
         setFormData({
           name: item.name || "",
@@ -54,7 +55,7 @@ const EditAndCreate = () => {
       }
     }
     setLoading(false);
-  }, [id, getItemById]);
+  }, [data]); // DO NOT UPDATE DEPTH!!
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -93,7 +94,7 @@ const EditAndCreate = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (id) {
+    if (data) {
       editFoodItemById(formData.image_url, formData);
     } else {
       addFoodItem(formData);
@@ -107,11 +108,11 @@ const EditAndCreate = () => {
     <ConfigProvider theme={theme}>
 
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">{id ? "食品情報の編集" : "食品を追加"}</h1>
+      <h1 className="text-2xl font-bold mb-6">{data ? "食品情報の編集" : "食品を追加"}</h1>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="flex justify-between items-center">
           <CardTitle>商品情報</CardTitle>
-          {id && (
+          {data && (
             <Button variant="default" className="bg-red-500 hover:bg-red-600" onClick={() => setOpen(true)}>
               <TrashIcon className="w-4 h-4 mr-2" />
               削除
@@ -260,7 +261,7 @@ const EditAndCreate = () => {
                   キャンセル
                 </Button>
                 <Button type="submit" variant="default">
-                  {id ? "保存" : "追加"}
+                  {data ? "保存" : "追加"}
                 </Button>
               </div>
             </div>
