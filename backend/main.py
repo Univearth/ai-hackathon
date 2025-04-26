@@ -79,76 +79,88 @@ async def analyze_image(file: UploadFile = File(...)):
                 base64_image = base64.b64encode(image_file.read()).decode('utf-8')
 
             # OllamaのAPIにリクエストを送信
-            response = requests.post(
-                "https://ollama.yashikota.com/api/chat",
-                json={
-                    "model": "gemma3:27b",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": "この写真から以下の情報をJSON形式で出力してください：\n"
-                            "1. 商品名 (日本語で)\n"
-                            "2. 賞味期限または消費期限（ISO 8601形式で）\n"
-                            "   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n"
-                            "   - 年が2桁で表記されている場合は、2000年代として解釈してください\n"
-                            "   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n"
-                            "   - 時間が記載されていない場合は、00:00:00として出力してください\n"
-                            "3. 画像URL（空文字列で構いません）\n"
-                            "4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n"
-                            "5. 単位（以下のいずれかから選択）：\n"
-                            "   - g\n"
-                            "   - kg\n"
-                            "   - ml\n"
-                            "   - L\n"
-                            "   - 個\n"
-                            "   - 枚\n"
-                            "   - 本\n"
-                            "6. 分類（以下のいずれかから選択）：\n"
-                            "   - 肉\n"
-                            "   - 野菜\n"
-                            "   - 魚\n"
-                            "   - 調味料\n"
-                            "   - お菓子\n"
-                            "   - 飲料\n"
-                            "   - その他\n"
-                            "JSONのキーは以下の通りです：\n"
-                            "- name\n"
-                            "- expiration_date\n"
-                            "- image_url\n"
-                            "- amount\n"
-                            "- unit\n"
-                            "- category",
-                            "images": [base64_image]
+            try:
+                response = requests.post(
+                    "https://ollama.yashikota.com/api/chat",
+                    json={
+                        "model": "gemma3:27b",
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": "この写真から以下の情報をJSON形式で出力してください：\n"
+                                "1. 商品名 (日本語で)\n"
+                                "2. 賞味期限または消費期限（ISO 8601形式で）\n"
+                                "   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n"
+                                "   - 年が2桁で表記されている場合は、2000年代として解釈してください\n"
+                                "   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n"
+                                "   - 時間が記載されていない場合は、00:00:00として出力してください\n"
+                                "3. 画像URL（空文字列で構いません）\n"
+                                "4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n"
+                                "5. 単位（以下のいずれかから選択）：\n"
+                                "   - g\n"
+                                "   - kg\n"
+                                "   - ml\n"
+                                "   - L\n"
+                                "   - 個\n"
+                                "   - 枚\n"
+                                "   - 本\n"
+                                "6. 分類（以下のいずれかから選択）：\n"
+                                "   - 肉\n"
+                                "   - 野菜\n"
+                                "   - 魚\n"
+                                "   - 調味料\n"
+                                "   - お菓子\n"
+                                "   - 飲料\n"
+                                "   - その他\n"
+                                "JSONのキーは以下の通りです：\n"
+                                "- name\n"
+                                "- expiration_date\n"
+                                "- image_url\n"
+                                "- amount\n"
+                                "- unit\n"
+                                "- category",
+                                "images": [base64_image]
+                            }
+                        ],
+                        "format": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "expiration_date": {"type": "string"},
+                                "image_url": {"type": "string"},
+                                "amount": {"type": "number"},
+                                "unit": {"type": "string"},
+                                "category": {"type": "string"}
+                            },
+                            "required": ["name", "expiration_date", "image_url", "amount", "unit", "category"]
                         }
-                    ],
-                    "format": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string"},
-                            "expiration_date": {"type": "string"},
-                            "image_url": {"type": "string"},
-                            "amount": {"type": "number"},
-                            "unit": {"type": "string"},
-                            "category": {"type": "string"}
-                        },
-                        "required": ["name", "expiration_date", "image_url", "amount", "unit", "category"]
                     }
-                }
-            )
+                )
 
-            if response.status_code != 200:
-                raise HTTPException(status_code=500, detail="画像解析に失敗しました")
+                if response.status_code != 200:
+                    print(f"Ollama API error: {response.status_code} - {response.text}")
+                    raise HTTPException(status_code=500, detail=f"Ollama API error: {response.text}")
 
-            # レスポンスをJSONとしてパース
-            result = json.loads(response.json()['message']['content'])
-            # 画像URLを設定
-            result["image_url"] = image_url
+                # レスポンスをJSONとしてパース
+                result = json.loads(response.json()['message']['content'])
+                # 画像URLを設定
+                result["image_url"] = image_url
 
-            return result
+                return result
+
+            except requests.exceptions.RequestException as e:
+                print(f"Request error: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"APIリクエストエラー: {str(e)}")
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"JSONデコードエラー: {str(e)}")
+            except Exception as e:
+                print(f"Unexpected error: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"予期せぬエラー: {str(e)}")
 
         except Exception as e:
-            print(f"エラー: {str(e)}")
-            raise HTTPException(status_code=500, detail="画像解析に失敗しました")
+            print(f"Error in image processing: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"画像処理エラー: {str(e)}")
 
         finally:
             # 一時ファイルを削除
