@@ -10,4 +10,4 @@ fi
 
 # アプリケーションを起動
 echo "アプリケーションを起動します..."
-uv run main.py
+uv run backend/main.py
