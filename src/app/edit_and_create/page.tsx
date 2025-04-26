@@ -144,7 +144,7 @@ const EditAndCreate = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push("/expiration")}
+                  onClick={() => router.push("/")}
                 >
                   キャンセル
                 </Button>
@@ -160,7 +160,7 @@ const EditAndCreate = () => {
         open={open}
         onOk={() => {
           deleteItemById(formData.image_url);
-          router.push("/expiration");
+          router.push("/");
         }}
         onCancel={() => {
           setOpen(false);

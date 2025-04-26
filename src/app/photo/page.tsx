@@ -11,6 +11,7 @@ import {
 import { ConfigProvider, GetProp, Modal, Upload, UploadProps } from 'antd';
 import { UploadChangeParam, UploadFile } from 'antd/es/upload/index';
 import dayjs from 'dayjs';
+import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 
@@ -18,6 +19,7 @@ type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0];
 
 const Receipt = () => {
   const { addFoodItem } = useStorage();
+  const router = useRouter();
   const camera = useRef<Webcam>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceNumber, setDeviceNumber] = useState(0);
@@ -120,6 +122,7 @@ const Receipt = () => {
         type: 'checked',
       });
       addFoodItem(data);
+      router.push("/");
     } catch (e) {
       console.error('Error in handleSubmit:', e);
       setNotificationInfo({
