@@ -10,7 +10,7 @@ import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // 日本語ロケールを設定
 dayjs.locale("ja");
@@ -30,21 +30,21 @@ const EditAndCreate = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // useEffect(() => {
-  //   if (id) {
-  //     const item = getItemById(id);
-  //     if (item) {
-  //       setFormData({
-  //         name: item.name || "",
-  //         expiration_date: item.expiration_date || dayjs().format("YYYY-MM-DD"),
-  //         image_url: item.image_url || "",
-  //         amount: item.amount || 0,
-  //         unit: item.unit || ""
-  //       });
-  //     }
-  //   }
-  //   setLoading(false);
-  // }, []);
+  useEffect(() => {
+    if (id) {
+      const item = getItemById(id);
+      if (item) {
+        setFormData({
+          name: item.name || "",
+          expiration_date: item.expiration_date || dayjs().format("YYYY-MM-DD"),
+          image_url: item.image_url || "",
+          amount: item.amount || 0,
+          unit: item.unit || ""
+        });
+      }
+    }
+    setLoading(false);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
