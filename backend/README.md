@@ -10,13 +10,10 @@
 
 **メソッド**: POST
 
+**Content-Type**: `multipart/form-data`
+
 **リクエストボディ**:
-```json
-{
-  "image_base64": "Base64でエンコードされた画像データ",
-  "content_type": "image/jpeg"  // オプション、デフォルトは "image/jpeg"
-}
-```
+- `file`: 画像ファイル（必須）
 
 **レスポンス**:
 ```json
@@ -24,7 +21,8 @@
   "name": "商品名（日本語）",
   "expiration_date": "賞味期限（ISO 8601形式）",
   "image_url": "アップロードされた画像のURL",
-  "amount": "分量（例：300g、1kg、500mlなど）",
+  "amount": 300.0,  // 分量（数値のみ、単位は含まない）
+  "unit": "g",  // 単位（g、kg、ml、L、個、枚、本など）
   "category": "分類（肉、野菜、魚、調味料、お菓子、飲料、その他）"
 }
 ```
@@ -32,19 +30,22 @@
 **使用例**:
 ```javascript
 // JavaScriptでの使用例
+const formData = new FormData();
+formData.append('file', imageFile);  // imageFileはFileオブジェクト
+
 const response = await fetch('https://backend.yashikota.com/analyze', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    image_base64: 'Base64でエンコードされた画像データ',
-    content_type: 'image/jpeg'
-  })
+  body: formData
 });
 
 const result = await response.json();
 console.log(result);
+```
+
+**curlでの使用例**:
+```bash
+curl -X POST https://backend.yashikota.com/analyze \
+  -F "file=@/path/to/image.jpg"
 ```
 
 ### 2. ヘルスチェックエンドポイント
