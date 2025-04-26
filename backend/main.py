@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-from google import genai
-from google.genai import types
+import ollama
 from minio import Minio
 import os
 import uuid
@@ -10,6 +9,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import tempfile
+import base64
+import requests
 
 # 環境変数の読み込み
 load_dotenv()
@@ -40,8 +41,6 @@ minio_client = Minio(
     secret_key=os.getenv("SECRET_KEY"),
     secure=True
 )
-
-client = genai.Client(api_key=os.getenv("GEMINI_KEY"))
 
 def upload_to_r2(file_path: str) -> str:
     # ファイル名を生成
@@ -75,68 +74,81 @@ async def analyze_image(file: UploadFile = File(...)):
             # R2にアップロードしてURLを取得
             image_url = upload_to_r2(temp_file_path)
 
-            # Gemini APIに画像データを送信
-            try:
-                response = client.models.generate_content(
-                    model='gemini-2.5-pro-exp-03-25',
-                    contents=[
-                        types.Part.from_bytes(
-                            data=content,
-                            mime_type=file.content_type,
-                        ),
-                        'この写真から以下の情報をJSON形式で出力してください：\n'
-                        '1. 商品名 (日本語で)\n'
-                        '2. 賞味期限または消費期限（ISO 8601形式で）\n'
-                        '   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n'
-                        '   - 年が2桁で表記されている場合は、2000年代として解釈してください\n'
-                        '   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n'
-                        '   - 時間が記載されていない場合は、00:00:00として出力してください\n'
-                        '3. 画像URL（空文字列で構いません）\n'
-                        '4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n'
-                        '5. 単位（以下のいずれかから選択）：\n'
-                        '   - g\n'
-                        '   - kg\n'
-                        '   - ml\n'
-                        '   - L\n'
-                        '   - 個\n'
-                        '   - 枚\n'
-                        '   - 本\n'
-                        '6. 分類（以下のいずれかから選択）：\n'
-                        '   - 肉\n'
-                        '   - 野菜\n'
-                        '   - 魚\n'
-                        '   - 調味料\n'
-                        '   - お菓子\n'
-                        '   - 飲料\n'
-                        '   - その他\n'
-                        'JSONのキーは以下の通りです：\n'
-                        '- name\n'
-                        '- expiration_date\n'
-                        '- image_url\n'
-                        '- amount\n'
-                        '- unit\n'
-                        '- category'
+            # 画像をbase64エンコード
+            with open(temp_file_path, 'rb') as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+
+            # OllamaのAPIにリクエストを送信
+            response = requests.post(
+                "https://ollama.yashikota.com/api/chat",
+                json={
+                    "model": "gemma3:27b",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": "この写真から以下の情報をJSON形式で出力してください：\n"
+                            "1. 商品名 (日本語で)\n"
+                            "2. 賞味期限または消費期限（ISO 8601形式で）\n"
+                            "   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n"
+                            "   - 年が2桁で表記されている場合は、2000年代として解釈してください\n"
+                            "   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n"
+                            "   - 時間が記載されていない場合は、00:00:00として出力してください\n"
+                            "3. 画像URL（空文字列で構いません）\n"
+                            "4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n"
+                            "5. 単位（以下のいずれかから選択）：\n"
+                            "   - g\n"
+                            "   - kg\n"
+                            "   - ml\n"
+                            "   - L\n"
+                            "   - 個\n"
+                            "   - 枚\n"
+                            "   - 本\n"
+                            "6. 分類（以下のいずれかから選択）：\n"
+                            "   - 肉\n"
+                            "   - 野菜\n"
+                            "   - 魚\n"
+                            "   - 調味料\n"
+                            "   - お菓子\n"
+                            "   - 飲料\n"
+                            "   - その他\n"
+                            "JSONのキーは以下の通りです：\n"
+                            "- name\n"
+                            "- expiration_date\n"
+                            "- image_url\n"
+                            "- amount\n"
+                            "- unit\n"
+                            "- category",
+                            "images": [base64_image]
+                        }
                     ],
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_schema": ProductInfo
+                    "format": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "expiration_date": {"type": "string"},
+                            "image_url": {"type": "string"},
+                            "amount": {"type": "number"},
+                            "unit": {"type": "string"},
+                            "category": {"type": "string"}
+                        },
+                        "required": ["name", "expiration_date", "image_url", "amount", "unit", "category"]
                     }
-                )
+                }
+            )
 
-                # レスポンスをJSONとしてパース
-                result = json.loads(response.text)
-                # 画像URLを設定
-                result["image_url"] = image_url
-
-                return result
-
-            except Exception as e:
-                print(f"Gemini APIエラー: {str(e)}")
+            if response.status_code != 200:
                 raise HTTPException(status_code=500, detail="画像解析に失敗しました")
 
+            # レスポンスをJSONとしてパース
+            result = json.loads(response.json()['message']['content'])
+            # 画像URLを設定
+            result["image_url"] = image_url
+
+            return result
+
         except Exception as e:
-            print(f"ファイル処理エラー: {str(e)}")
-            raise HTTPException(status_code=500, detail="ファイル処理に失敗しました")
+            print(f"エラー: {str(e)}")
+            raise HTTPException(status_code=500, detail="画像解析に失敗しました")
 
         finally:
             # 一時ファイルを削除
