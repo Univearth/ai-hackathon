@@ -30,6 +30,8 @@ class ProductInfo(BaseModel):
     name: str
     expiration_date: str
     image_url: str
+    amount: str  # 分量（例：300g）
+    category: str  # 分類（例：肉、野菜、魚、調味料、お菓子など）
 
 class ImageRequest(BaseModel):
     image_base64: str
@@ -63,13 +65,15 @@ def upload_to_r2(file_path: str) -> str:
 
 @app.post("/analyze")
 async def analyze_image(request: ImageRequest):
-    # Base64をデコードして一時ファイルとして保存
-    image_data = base64.b64decode(request.image_base64)
-    temp_file_path = f"temp_{uuid.uuid4()}.jpg"  # 拡張子は仮に.jpgとしています
-    with open(temp_file_path, "wb") as buffer:
-        buffer.write(image_data)
-
     try:
+        # Base64をデコード
+        image_data = base64.b64decode(request.image_base64.encode('utf-8'))
+
+        # 一時ファイルとして保存
+        temp_file_path = f"temp_{uuid.uuid4()}.jpg"
+        with open(temp_file_path, "wb") as buffer:
+            buffer.write(image_data)
+
         # R2にアップロードしてURLを取得
         image_url = upload_to_r2(temp_file_path)
 
@@ -88,10 +92,21 @@ async def analyze_image(request: ImageRequest):
                 '   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n'
                 '   - 時間が記載されていない場合は、00:00:00として出力してください\n'
                 '3. 画像URL（空文字列で構いません）\n'
+                '4. 分量（例：300g、1kg、500mlなど）\n'
+                '5. 分類（以下のいずれかから選択）：\n'
+                '   - 肉\n'
+                '   - 野菜\n'
+                '   - 魚\n'
+                '   - 調味料\n'
+                '   - お菓子\n'
+                '   - 飲料\n'
+                '   - その他\n'
                 'JSONのキーは以下の通りです：\n'
                 '- name\n'
                 '- expiration_date\n'
-                '- image_url'
+                '- image_url\n'
+                '- amount\n'
+                '- category'
             ],
             config={
                 "response_mime_type": "application/json",
@@ -105,6 +120,10 @@ async def analyze_image(request: ImageRequest):
         result["image_url"] = image_url
 
         return result
+
+    except Exception as e:
+        print(f"エラーが発生しました: {str(e)}")
+        raise
 
     finally:
         # 一時ファイルを削除
