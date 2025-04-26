@@ -158,7 +158,7 @@ const Expiration = () => {
                   <div className={`
                     mt-2 py-1 px-3 rounded-full text-sm font-medium inline-block
                     ${daysRemaining <= 0 ? 'bg-destructive/15 text-destructive' :
-                      daysRemaining <= 3 ? 'bg-orange-100 text-orange-800' :
+                      daysRemaining <= 7 ? 'bg-orange-100 text-orange-800' :
                         'bg-green-100 text-green-800'}
                   `}>
                     {daysRemaining <= 0
