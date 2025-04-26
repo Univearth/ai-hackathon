@@ -26,9 +26,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
-        <link rel="icon" href="/fidgy.png" sizes="any" />
-        <link rel="apple-touch-icon" href="/fidgy.png" />
-        <link rel="favicon" href="/fidgy.png" />
+        <link rel="icon" href="/fridgy.png" sizes="any" />
+        <link rel="apple-touch-icon" href="/fridgy.png" />
+        <link rel="favicon" href="/fridgy.png" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
