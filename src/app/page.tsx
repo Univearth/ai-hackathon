@@ -64,7 +64,7 @@ const Expiration = () => {
                     </div>
                   )}
                   <Link
-                    href={`/edit_and_create?image_url=${item.image_url}`}
+                    href={`/edit_and_create?data=${JSON.stringify(item)}`}
                     className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100"
                   >
                     <PencilIcon className="h-4 w-4 text-gray-600" />

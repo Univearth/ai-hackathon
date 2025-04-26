@@ -163,7 +163,10 @@ const EditAndCreate = () => {
           router.push("/expiration");
         }}
         onCancel={() => {
+          setOpen(false);
         }}
+        maskClosable
+
         okText="削除"
         cancelText="キャンセル"
       >
