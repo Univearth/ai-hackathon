@@ -96,28 +96,32 @@ const Receipt = () => {
     });
 
     try {
-      console.log(image);
+      const formData = new FormData();
+      const blob = await fetch(image).then(r => r.blob());
+      formData.append('file', blob, 'image.jpg');
+
       const response = await fetch('/api/expiration', {
         method: 'POST',
-        body: image,
+        body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('APIリクエストに失敗しました');
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'APIリクエストに失敗しました');
       }
       const data = await response.json();
       setNotificationInfo({
         open: true,
         text: '送信成功',
-        subText: `商品名: ${data.name}\n期限: ${data.expiration_date}`,
+        subText: `商品名: ${data.name}\n期限: ${data.expiration_date}\n分量: ${data.amount}${data.unit}`,
         type: 'checked',
       });
     } catch (e) {
+      console.error('Error in handleSubmit:', e);
       setNotificationInfo({
         open: true,
         text: '送信失敗',
-        subText:
-          'ファイルの送信に失敗しました。インターネット環境を確認してください。',
+        subText: e instanceof Error ? e.message : 'ファイルの送信に失敗しました。インターネット環境を確認してください。',
         type: 'danger',
       });
     }
