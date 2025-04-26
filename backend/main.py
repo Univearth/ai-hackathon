@@ -10,7 +10,6 @@ import uvicorn
 import tempfile
 import base64
 from openai import OpenAI
-import requests
 from typing import List, Optional
 
 # 環境変数の読み込み
@@ -61,6 +60,10 @@ class RecipeResponse(BaseModel):
     difficulty: str
     cooking_time: str
     servings: int
+
+class UploadJsonRequest(BaseModel):
+    id: str
+    data: dict
 
 # MinIOクライアントの設定
 minio_client = Minio(
@@ -258,6 +261,75 @@ async def suggest_menu(request: MenuRequest):
         print(f"Menu suggestion error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"献立提案エラー: {str(e)}")
 
+@app.post("/upload-json")
+async def upload_json(request: UploadJsonRequest):
+    try:
+        # 一時ファイルを作成してJSONを書き込む
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False, mode='wb') as temp_file:
+            json_data = json.dumps(request.data, ensure_ascii=False)
+            temp_file.write(json_data.encode('utf-8'))
+            temp_file.flush()  # バッファをフラッシュ
+            temp_file_path = temp_file.name
+
+        try:
+            # R2にアップロード
+            object_name = f"{request.id}.json"
+            minio_client.fput_object(
+                "ai-hackathon",
+                object_name,
+                temp_file_path
+            )
+
+            # URLを生成
+            url = f"https://pub-7444760b0415482ba8f55298c08a442b.r2.dev/{object_name}"
+            return {"url": url}
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"アップロードエラー: {str(e)}")
+
+        finally:
+            # 一時ファイルを削除
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"サーバーエラー: {str(e)}")
+
+
+@app.get("/get-json/{id}")
+async def get_json(id: str):
+    try:
+        # 一時ファイルを作成
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False, mode='wb') as temp_file:
+            temp_file_path = temp_file.name
+
+            try:
+                # R2からファイルをダウンロード
+                object_name = f"{id}.json"
+                minio_client.fget_object(
+                    "ai-hackathon",
+                    object_name,
+                    temp_file_path
+                )
+
+                # JSONファイルを読み込む
+                with open(temp_file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                return data
+
+            except Exception as e:
+                if "NoSuchKey" in str(e):
+                    raise HTTPException(status_code=404, detail="指定されたIDのファイルが見つかりません")
+                raise HTTPException(status_code=500, detail=f"ダウンロードエラー: {str(e)}")
+
+            finally:
+                # 一時ファイルを削除
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"サーバーエラー: {str(e)}")
 
 @app.get("/health")
 async def health():
