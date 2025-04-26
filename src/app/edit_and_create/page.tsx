@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import useStorage, { FoodItem } from "@/hooks/useStorage";
+import { CameraIcon } from "@heroicons/react/24/outline";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
@@ -114,17 +115,29 @@ const EditAndCreate = () => {
                 placeholder="https://example.com/image.jpg"
               />
             </div>
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-between space-x-2 pt-4">
+
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => router.push("/expiration")}
+
+                variant="default"
+                onClick={() => router.push("/photo")}
+              >
+                <CameraIcon className="w-4 h-4 mr-2" />
+                写真を撮る
+              </Button>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/expiration")}
               >
                 キャンセル
               </Button>
               <Button type="submit" variant="default">
                 {id ? "保存" : "追加"}
               </Button>
+              </div>
             </div>
           </form>
         </CardContent>

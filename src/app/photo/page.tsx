@@ -15,7 +15,6 @@ import Webcam from 'react-webcam';
 type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0];
 
 const Receipt = () => {
-  const [isDone, setIsDone] = useState<boolean>(false);
   const camera = useRef<Webcam>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceNumber, setDeviceNumber] = useState(0);
@@ -97,7 +96,22 @@ const Receipt = () => {
     });
 
     try {
-      setIsDone(true);
+      console.log(image);
+      const response = await fetch('/api/expiration', {
+        method: 'POST',
+        body: image,
+      });
+
+      if (!response.ok) {
+        throw new Error('APIリクエストに失敗しました');
+      }
+      const data = await response.json();
+      setNotificationInfo({
+        open: true,
+        text: '送信成功',
+        subText: `商品名: ${data.name}\n期限: ${data.expiration_date}`,
+        type: 'checked',
+      });
     } catch (e) {
       setNotificationInfo({
         open: true,
@@ -113,8 +127,8 @@ const Receipt = () => {
 
   return (
     <ConfigProvider theme={theme}>
-      <div>
-        <div>
+      <div className="h-screen">
+        <div className="h-full">
           {!confirmImg ? (
             <Webcam
               className="w-full h-full"
