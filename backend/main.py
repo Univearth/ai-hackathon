@@ -6,11 +6,9 @@ import os
 import uuid
 from dotenv import load_dotenv
 import json
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import base64
-from typing import Optional
 import tempfile
 
 # 環境変数の読み込み
@@ -31,12 +29,9 @@ class ProductInfo(BaseModel):
     name: str
     expiration_date: str
     image_url: str
-    amount: str  # 分量（例：300g）
+    amount: float  # 分量（例：300.0）
+    unit: str  # 単位（例：g、kg、ml、Lなど）
     category: str  # 分類（例：肉、野菜、魚、調味料、お菓子など）
-
-class ImageRequest(BaseModel):
-    image_base64: str
-    content_type: Optional[str] = "image/jpeg"
 
 # MinIOクライアントの設定
 minio_client = Minio(
@@ -65,67 +60,83 @@ def upload_to_r2(file_path: str) -> str:
     return url
 
 @app.post("/analyze")
-async def analyze_image(request: ImageRequest):
+async def analyze_image(file: UploadFile = File(...)):
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="画像ファイルをアップロードしてください")
+
     # 一時ファイルを作成
     with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
         try:
-            # Base64をデコード
-            image_data = base64.b64decode(request.image_base64.encode('utf-8'))
-
-            # 一時ファイルに書き込み
-            temp_file.write(image_data)
+            # アップロードされたファイルの内容を一時ファイルに書き込み
+            content = await file.read()
+            temp_file.write(content)
             temp_file_path = temp_file.name
 
             # R2にアップロードしてURLを取得
             image_url = upload_to_r2(temp_file_path)
 
-            response = client.models.generate_content(
-                model='gemini-2.5-pro-exp-03-25',
-                contents=[
-                    types.Part.from_bytes(
-                        data=image_data,
-                        mime_type=request.content_type,
-                    ),
-                    'この写真から以下の情報をJSON形式で出力してください：\n'
-                    '1. 商品名 (日本語で)\n'
-                    '2. 賞味期限または消費期限（ISO 8601形式で）\n'
-                    '   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n'
-                    '   - 年が2桁で表記されている場合は、2000年代として解釈してください\n'
-                    '   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n'
-                    '   - 時間が記載されていない場合は、00:00:00として出力してください\n'
-                    '3. 画像URL（空文字列で構いません）\n'
-                    '4. 分量（例：300g、1kg、500mlなど）\n'
-                    '5. 分類（以下のいずれかから選択）：\n'
-                    '   - 肉\n'
-                    '   - 野菜\n'
-                    '   - 魚\n'
-                    '   - 調味料\n'
-                    '   - お菓子\n'
-                    '   - 飲料\n'
-                    '   - その他\n'
-                    'JSONのキーは以下の通りです：\n'
-                    '- name\n'
-                    '- expiration_date\n'
-                    '- image_url\n'
-                    '- amount\n'
-                    '- category'
-                ],
-                config={
-                    "response_mime_type": "application/json",
-                    "response_schema": ProductInfo
-                }
-            )
+            # Gemini APIに画像データを送信
+            try:
+                response = client.models.generate_content(
+                    model='gemini-2.5-pro-exp-03-25',
+                    contents=[
+                        types.Part.from_bytes(
+                            data=content,
+                            mime_type=file.content_type,
+                        ),
+                        'この写真から以下の情報をJSON形式で出力してください：\n'
+                        '1. 商品名 (日本語で)\n'
+                        '2. 賞味期限または消費期限（ISO 8601形式で）\n'
+                        '   - 日付の解釈に注意してください。例えば「25.4.28」は「2025年4月28日」と解釈してください\n'
+                        '   - 年が2桁で表記されている場合は、2000年代として解釈してください\n'
+                        '   - 時間が記載されている場合は、その時間も含めて出力してください（例：2025-04-28T14:30:00Z）\n'
+                        '   - 時間が記載されていない場合は、00:00:00として出力してください\n'
+                        '3. 画像URL（空文字列で構いません）\n'
+                        '4. 分量（数値のみ、単位は含めない。例：300、1.5、500など）\n'
+                        '5. 単位（以下のいずれかから選択）：\n'
+                        '   - g\n'
+                        '   - kg\n'
+                        '   - ml\n'
+                        '   - L\n'
+                        '   - 個\n'
+                        '   - 枚\n'
+                        '   - 本\n'
+                        '6. 分類（以下のいずれかから選択）：\n'
+                        '   - 肉\n'
+                        '   - 野菜\n'
+                        '   - 魚\n'
+                        '   - 調味料\n'
+                        '   - お菓子\n'
+                        '   - 飲料\n'
+                        '   - その他\n'
+                        'JSONのキーは以下の通りです：\n'
+                        '- name\n'
+                        '- expiration_date\n'
+                        '- image_url\n'
+                        '- amount\n'
+                        '- unit\n'
+                        '- category'
+                    ],
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": ProductInfo
+                    }
+                )
 
-            # レスポンスをJSONとしてパース
-            result = json.loads(response.text)
-            # 画像URLを設定
-            result["image_url"] = image_url
+                # レスポンスをJSONとしてパース
+                result = json.loads(response.text)
+                # 画像URLを設定
+                result["image_url"] = image_url
 
-            return result
+                return result
+
+            except Exception as e:
+                print(f"Gemini APIエラー: {str(e)}")
+                raise HTTPException(status_code=500, detail="画像解析に失敗しました")
 
         except Exception as e:
-            print(f"エラーが発生しました: {str(e)}")
-            raise
+            print(f"ファイル処理エラー: {str(e)}")
+            raise HTTPException(status_code=500, detail="ファイル処理に失敗しました")
 
         finally:
             # 一時ファイルを削除

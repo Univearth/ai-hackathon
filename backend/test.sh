@@ -17,13 +17,6 @@ if [ ! -f "$IMAGE_PATH" ]; then
     exit 1
 fi
 
-# 画像ファイルをBase64にエンコード（macOS用）
-IMAGE_BASE64=$(/usr/bin/base64 -i "$IMAGE_PATH")
-
 # 画像解析APIを呼び出し
 curl -X POST http://localhost:8000/analyze \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"image_base64\": \"$IMAGE_BASE64\",
-    \"content_type\": \"image/jpeg\"
-  }"
+  -F "file=@$IMAGE_PATH"
