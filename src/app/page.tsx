@@ -2,18 +2,26 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProductFilter } from "@/components/ui/ProductFilter";
 import useStorage from "@/hooks/useStorage";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { BarChart2, CalendarIcon, CameraIcon, PencilIcon, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
 // 日本語ロケールを設定
 dayjs.locale("ja");
 
 const Expiration = () => {
   const { responses: foodItems } = useStorage();
+  const [filters, setFilters] = useState<{
+    amount?: number;
+    amountType?: "greater" | "less";
+    unit?: string;
+    category?: string;
+  }>({});
 
   // dayjsを使用した日付フォーマット
   const formatDate = (dateString: string) => {
@@ -26,6 +34,17 @@ const Expiration = () => {
     const expirationDate = dayjs(dateString).startOf("day");
     return expirationDate.diff(today, "day");
   };
+
+  // フィルタリングされた商品リスト
+  const filteredItems = foodItems.filter((item) => {
+    if (filters.amount !== undefined) {
+      if (filters.amountType === "greater" && item.amount < filters.amount) return false;
+      if (filters.amountType === "less" && item.amount > filters.amount) return false;
+    }
+    if (filters.unit && item.unit !== filters.unit) return false;
+    if (filters.category && item.category !== filters.category) return false;
+    return true;
+  });
 
   return (
     <div className="container mx-auto p-4">
@@ -53,13 +72,17 @@ const Expiration = () => {
         </div>
       </div>
 
-      {foodItems.length === 0 ? (
+      <div className="mb-6">
+        <ProductFilter onFilterChange={setFilters} />
+      </div>
+
+      {filteredItems.length === 0 ? (
         <div className="text-center py-10">
           <p className="text-muted-foreground">データがありません</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {foodItems.map((item, index) => {
+          {filteredItems.map((item, index) => {
             const daysRemaining = getDaysRemaining(item.expiration_date);
 
             return (
@@ -91,6 +114,14 @@ const Expiration = () => {
                   <div className="flex items-center gap-2 text-sm mb-2">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                     <span>賞味期限: {formatDate(item.expiration_date)}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm mb-2">
+                    <span>分量: {item.amount}{item.unit}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm mb-2">
+                    <span>分類: {item.category}</span>
                   </div>
 
                   <div className={`
