@@ -4,21 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import useStorage from "@/hooks/useStorage";
+import { theme } from "@/theme/theme";
 import { ResponseTypes } from "@/types/response";
 import { CameraIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { DatePicker } from "antd";
+import { ConfigProvider, DatePicker, Modal } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-
 // 日本語ロケールを設定
 dayjs.locale("ja");
+const { confirm } = Modal;
 
 const EditAndCreate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("data");
+  const [open, setOpen] = useState(false);
   const { addFoodItem, editFoodItemById, getItemById, deleteItemById } = useStorage();
 
   const [formData, setFormData] = useState<ResponseTypes>({
@@ -74,13 +76,15 @@ const EditAndCreate = () => {
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
+    <ConfigProvider theme={theme}>
+
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">{id ? "食品情報の編集" : "食品を追加"}</h1>
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="flex justify-between items-center">
           <CardTitle>商品情報</CardTitle>
           {id && (
-            <Button variant="default" className="bg-red-500 hover:bg-red-600" onClick={() => deleteItemById(formData.image_url)}>
+            <Button variant="default" className="bg-red-500 hover:bg-red-600" onClick={() => setOpen(true)}>
               <TrashIcon className="w-4 h-4 mr-2" />
               削除
             </Button>
@@ -152,7 +156,22 @@ const EditAndCreate = () => {
           </form>
         </CardContent>
       </Card>
+      <Modal
+        open={open}
+        onOk={() => {
+          deleteItemById(formData.image_url);
+          router.push("/expiration");
+        }}
+        onCancel={() => {
+        }}
+        okText="削除"
+        cancelText="キャンセル"
+      >
+        <p>この商品を削除しますか？</p>
+        <p>この操作は元に戻すことができません。</p>
+      </Modal>
     </div>
+    </ConfigProvider>
   );
 };
 
