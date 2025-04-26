@@ -9,19 +9,22 @@ import "dayjs/locale/ja";
 import { BarChart2, CalendarIcon, CameraIcon, PencilIcon, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 // 日本語ロケールを設定
 dayjs.locale("ja");
 
 const Expiration = () => {
-  const { responses: foodItems } = useStorage();
+  const router = useRouter();
+  const { responses: foodItems, addFoodItem } = useStorage();
   const [filters, setFilters] = useState<{
     amount?: number;
     amountType?: "greater" | "less";
     unit?: string;
     category?: string;
   }>({});
+  const [sortType, setSortType] = useState<'exp_asc' | 'exp_desc' | 'added'>('exp_asc');
 
   // dayjsを使用した日付フォーマット
   const formatDate = (dateString: string) => {
@@ -67,6 +70,55 @@ const Expiration = () => {
     }
   };
 
+  // 並び替えロジック
+  const sortedItems = (() => {
+    if (sortType === 'exp_asc') {
+      return [...filteredItems].sort((a, b) => getDaysRemaining(a.expiration_date) - getDaysRemaining(b.expiration_date));
+    } else if (sortType === 'exp_desc') {
+      return [...filteredItems].sort((a, b) => getDaysRemaining(b.expiration_date) - getDaysRemaining(a.expiration_date));
+    } else {
+      return filteredItems; // 追加順はそのまま
+    }
+  })();
+
+  // JSONエクスポート処理
+  const handleExportJson = () => {
+    const json = JSON.stringify(foodItems, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'foods.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // JSONインポート処理
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result as string);
+        if (!Array.isArray(imported)) throw new Error('不正なJSON形式です');
+        imported.forEach((item) => {
+          // 必須フィールドの簡易チェック
+          if (item.name && item.expiration_date && item.image_url && typeof item.amount === 'number' && item.unit && item.category) {
+            addFoodItem(item);
+          }
+        });
+        alert('インポートが完了しました');
+      } catch (err) {
+        alert('インポートに失敗しました: ' + (err instanceof Error ? err.message : '不明なエラー'));
+      }
+    };
+    reader.readAsText(file);
+    // inputの値をリセットして同じファイルを連続で選択できるように
+    e.target.value = '';
+  };
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
@@ -90,19 +142,60 @@ const Expiration = () => {
             </Link>
           </Button>
         </div>
+        {/* JSONエクスポートボタン */}
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={handleExportJson}>
+            JSONエクスポート
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+            JSONインポート
+          </Button>
+          <input
+            type="file"
+            accept="application/json"
+            ref={fileInputRef}
+            onChange={handleImportJson}
+            className="hidden"
+          />
+        </div>
       </div>
 
       <div className="mb-6">
         <ProductFilter onFilterChange={setFilters} />
       </div>
 
-      {filteredItems.length === 0 ? (
+      {/* 並び替えボタン */}
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={sortType === 'exp_asc' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSortType('exp_asc')}
+        >
+          賞味期限が近い順
+        </Button>
+        <Button
+          variant={sortType === 'exp_desc' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSortType('exp_desc')}
+        >
+          賞味期限が遠い順
+        </Button>
+        <Button
+          variant={sortType === 'added' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSortType('added')}
+        >
+          追加順
+        </Button>
+      </div>
+
+      {sortedItems.length === 0 ? (
         <div className="text-center py-10">
           <p className="text-muted-foreground">データがありません</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredItems.map((item) => {
+        <div onClick={() => router.push(`/edit_and_create?id=${encodeURIComponent(sortedItems[0].image_url)}`)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedItems.map((item) => {
             const daysRemaining = getDaysRemaining(item.expiration_date);
             const percent = maxDays > 0 ? Math.max((daysRemaining / maxDays) * 100, 5) : 5;
             const gradient = getGradient(daysRemaining);
@@ -123,7 +216,7 @@ const Expiration = () => {
                     </div>
                   )}
                   <Link
-                    href={`/edit_and_create?data=${JSON.stringify(item)}`}
+                    href={`/edit_and_create?id=${encodeURIComponent(item.image_url)}`}
                     className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-100"
                   >
                     <PencilIcon className="h-4 w-4 text-gray-600" />
