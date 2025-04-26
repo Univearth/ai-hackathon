@@ -113,7 +113,8 @@ const Expiration = () => {
   const getDaysRemaining = (dateString: string) => {
     const today = dayjs().startOf("day");
     const expirationDate = dayjs(dateString).startOf("day");
-    return expirationDate.diff(today, "day");
+    const days = expirationDate.diff(today, "day");
+    return days < 0 ? 0 : days;
   };
 
   // フィルタリングされた商品リスト
@@ -207,7 +208,7 @@ const Expiration = () => {
       } catch (err) {
         alert(
           "インポートに失敗しました: " +
-            (err instanceof Error ? err.message : "不明なエラー")
+          (err instanceof Error ? err.message : "不明なエラー")
         );
       }
     };
@@ -507,11 +508,10 @@ const Expiration = () => {
             return (
               <Card
                 key={item.image_url}
-                className={`overflow-hidden relative ${
-                  isSelectionMode && selectedItems[item.image_url]
+                className={`overflow-hidden relative ${isSelectionMode && selectedItems[item.image_url]
                     ? "ring-2 ring-primary ring-offset-2"
                     : ""
-                }`}
+                  }`}
               >
                 {isSelectionMode && (
                   <div className="absolute top-2 left-2 z-10">
@@ -562,9 +562,8 @@ const Expiration = () => {
                     <span>
                       {getExpirationLabel(item.expiration_type)}:{" "}
                       <span
-                        className={`${
-                          daysRemaining <= 7 ? "text-red-500" : ""
-                        }`}
+                        className={`${daysRemaining <= 7 ? "text-red-500" : ""
+                          }`}
                       >
                         {formatDate(item.expiration_date)}
                       </span>
@@ -592,13 +591,12 @@ const Expiration = () => {
                   <div
                     className={`
                     mt-2 py-1 px-3 rounded-full text-sm font-medium inline-block
-                    ${
-                      daysRemaining <= 0
+                    ${daysRemaining <= 0
                         ? "bg-destructive/15 text-destructive"
                         : daysRemaining <= 7
-                        ? "bg-orange-100 text-orange-800"
-                        : "bg-green-100 text-green-800"
-                    }
+                          ? "bg-orange-100 text-orange-800"
+                          : "bg-green-100 text-green-800"
+                      }
                   `}
                   >
                     {daysRemaining <= 0 ? "期限切れ" : `あと${daysRemaining}日`}
