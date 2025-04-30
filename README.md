@@ -1,4 +1,6 @@
-# ai-hackathon
+# fridgy
+
+https://github.com/user-attachments/assets/0516b0cc-fef5-4416-899e-94e5a2c29a2e
 
 開発時のルールは [docs/rules.md](docs/rules.md) を、参考資料は [docs/ref.md](docs/ref.md) を参照すること  
 
